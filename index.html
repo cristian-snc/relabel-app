@@ -41,6 +41,25 @@ body{
 .deploy-step input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:7px;
   padding:10px;font-size:14px;color:var(--ink);margin-top:6px;}
 .deploy-step input:focus{outline:none;border-color:var(--acc);}
+.apikey-bar{
+  background:#0c0e11;border-bottom:1px solid var(--line);
+  padding:8px 16px;display:flex;align-items:center;gap:8px;font-size:12px;
+}
+.apikey-bar .ak-label{color:var(--mut);font-weight:700;white-space:nowrap;font-size:11px;}
+.apikey-bar input{
+  flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:6px 10px;font-size:12px;color:var(--ink);font-family:var(--mono);
+  min-width:0;
+}
+.apikey-bar input:focus{outline:none;border-color:var(--acc);}
+.apikey-bar input.ok{border-color:var(--ok);}
+.apikey-bar .ak-save{
+  background:var(--acc);color:#fff;border:none;border-radius:6px;
+  padding:6px 12px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;
+}
+.apikey-bar .ak-status{font-size:10px;white-space:nowrap;}
+.apikey-bar .ak-status.ok{color:var(--ok);}
+.apikey-bar .ak-status.err{color:var(--err);}
 .lang-btn{background:none;border:1px solid var(--line);color:var(--mut);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.5px;}
 .lang-btn.on{background:var(--acc);color:#fff;border-color:var(--acc);}
 .modebar{display:flex;background:#0c0e11;border-bottom:1px solid var(--line);}
@@ -229,6 +248,12 @@ main{flex:1;padding:18px 16px;display:flex;flex-direction:column;gap:16px;}
 <body>
 <div id="root">
 
+<div class="apikey-bar" id="apikeyBar">
+  <span class="ak-label">API KEY</span>
+  <input type="password" id="apikeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+  <button class="ak-save" id="apikeySave">Salvar</button>
+  <span class="ak-status" id="apikeyStatus"></span>
+</div>
 <div class="modebar">
   <button class="modebtn on" id="m-web"><span class="em">🖥️</span> <span data-i18n="app.web">PLATAFORMA WEB</span></button>
   <button class="modebtn" id="m-cfg"><span class="em">⚙️</span> <span data-i18n="app.cfg">PARAMETRIZAÇÃO</span></button>
@@ -918,13 +943,27 @@ function showBoot(){
     msgs.push('<div class="alert warn" style="display:flex;flex-direction:column;gap:10px;">'+
       '<div><b>⚠️ Arquivo aberto via file://</b><br>'+
       '<span style="font-size:12px;">As funções de IA não funcionam neste modo. '+
-      'Publique no GitHub Pages para usar em qualquer dispositivo — é grátis e leva 1 minuto.</span></div>'+
+      'Publique no GitHub Pages para usar em qualquer dispositivo.</span></div>'+
       '<button onclick="showDeployModal()" style="background:var(--acc);color:#fff;border:none;border-radius:8px;'+
       'padding:11px;font-size:13px;font-weight:800;cursor:pointer;width:100%;">'+
       '🚀 Publicar no GitHub Pages</button>'+
       '</div>');
+    /* avisa sobre API key mesmo em file:// */
+    if(!getApiKey()){
+      msgs.push('<div class="alert info" style="font-size:12px;">🔑 <b>API Key não configurada.</b> '+
+        'Insira sua chave Anthropic na barra superior (API KEY) para usar as funções de IA.<br>'+
+        '<a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--info);">'+
+        'Obter API Key → console.anthropic.com</a></div>');
+    }
   }
   /* MiniZip sempre disponivel — sem aviso de fflate */
+  /* avisa sobre API key se não configurada e não for file:// */
+  if(!ENV.fileUrl && !getApiKey()){
+    msgs.push('<div class="alert warn" style="font-size:12px;">🔑 <b>API Key não configurada.</b> '+
+      'Insira sua chave Anthropic na barra <b>API KEY</b> acima para usar as funções de IA.<br>'+
+      '<a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--info);">'+
+      'Obter chave → console.anthropic.com</a></div>');
+  }
   /* mostra URL do deploy anterior se existir */
   var deployUrl=localStorage.getItem('relabel_deploy_url');
   if(deployUrl && !ENV.fileUrl){
@@ -1198,12 +1237,43 @@ function parseXlsx(arrayBuffer){
    obrigatórios e tratamento de erro consistente.
    Retorna Promise<{content:[{text}]}> ou lança Error.
    ──────────────────────────────────────────────────────────── */
+/* ── API Key management ─────────────────────────────────── */
+function getApiKey(){
+  return localStorage.getItem('relabel_api_key')||'';
+}
+function saveApiKey(key){
+  key=(key||'').trim();
+  if(key) localStorage.setItem('relabel_api_key', key);
+  else localStorage.removeItem('relabel_api_key');
+  updateApiKeyUI(key);
+}
+function updateApiKeyUI(key){
+  var input=$('apikeyInput');
+  var status=$('apikeyStatus');
+  if(!input) return;
+  if(key && key.length>10){
+    input.className='ok';
+    status.className='ak-status ok';
+    status.textContent='✓ salva';
+    input.value=key; /* mostra para confirmação */
+  } else {
+    input.className='';
+    status.className='ak-status err';
+    status.textContent=key?'inválida':'não configurada';
+  }
+}
+
 function apiFetch(messages, maxTokens){
-  /* valida que não há valores undefined/null nos campos críticos das mensagens */
+  var apiKey=getApiKey();
+  if(!apiKey){
+    return Promise.reject(new Error('API Key não configurada. Insira sua chave Anthropic na barra superior.'));
+  }
+
+  /* valida payload */
   try{
     var check=JSON.stringify(messages);
     if(check.indexOf('"data":null')>=0 || check.indexOf('"data":""')>=0){
-      return Promise.reject(new Error('Imagem não carregada. Selecione o arquivo novamente antes de analisar.'));
+      return Promise.reject(new Error('Imagem não carregada. Selecione o arquivo novamente.'));
     }
   }catch(e){
     return Promise.reject(new Error('Erro ao preparar payload: '+e.message));
@@ -1224,6 +1294,7 @@ function apiFetch(messages, maxTokens){
     method:'POST',
     headers:{
       'Content-Type':'application/json',
+      'x-api-key':apiKey,
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
@@ -2271,6 +2342,19 @@ function runDeploy(){
    ============================================================ */
 function bind(){
   var ps=$('poSearch'); if(ps) ps.addEventListener('input',function(){ filterPoList(this.value); });
+  /* API Key bar */
+  var savedKey=getApiKey();
+  if($('apikeyInput')){
+    if(savedKey) $('apikeyInput').value=savedKey;
+    updateApiKeyUI(savedKey);
+    $('apikeySave').onclick=function(){
+      var k=$('apikeyInput').value.trim();
+      saveApiKey(k);
+    };
+    $('apikeyInput').addEventListener('keydown',function(e){
+      if(e.key==='Enter') $('apikeySave').click();
+    });
+  }
   $('lang-pt').onclick=function(){ setLang('pt'); };
   $('lang-es').onclick=function(){ setLang('es'); };
   $('lang-en').onclick=function(){ setLang('en'); };
