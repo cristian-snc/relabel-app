@@ -1,0 +1,2343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ReLabel — Sistema de Reetiquetagem</title>
+<style>
+:root{
+  --bg:#13161a; --panel:#1c2127; --panel2:#232a32; --line:#323b46;
+  --ink:#f2f4f7; --mut:#8a96a5; --acc:#ff5b1f; --acc2:#ffb000;
+  --ok:#1fb95b; --err:#ff3b3b; --info:#3aa0d8;
+  --mono:'Courier New',ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+  overscroll-behavior:none;
+}
+#root{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;}
+
+.deploy-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;
+  display:flex;align-items:flex-end;justify-content:center;padding:0;
+}
+.deploy-sheet{
+  background:var(--panel);border-radius:18px 18px 0 0;width:100%;max-width:560px;
+  padding:24px 20px 36px;display:flex;flex-direction:column;gap:14px;
+  max-height:90vh;overflow-y:auto;
+}
+.deploy-sheet .ds-title{font-size:18px;font-weight:900;letter-spacing:-.3px;}
+.deploy-sheet .ds-sub{font-size:13px;color:var(--mut);line-height:1.5;}
+.deploy-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+.deploy-step:last-child{border-bottom:none;}
+.deploy-step .sn{width:24px;height:24px;border-radius:50%;background:var(--acc);color:#fff;
+  font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.deploy-step .sc{flex:1;}
+.deploy-step .sc b{font-size:13px;display:block;margin-bottom:3px;}
+.deploy-step .sc span{font-size:12px;color:var(--mut);}
+.deploy-step input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+  padding:10px;font-size:14px;color:var(--ink);margin-top:6px;}
+.deploy-step input:focus{outline:none;border-color:var(--acc);}
+.lang-btn{background:none;border:1px solid var(--line);color:var(--mut);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.5px;}
+.lang-btn.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.modebar{display:flex;background:#0c0e11;border-bottom:1px solid var(--line);}
+.modebtn{
+  flex:1;padding:11px 6px;background:none;border:none;color:var(--mut);
+  font-size:12px;font-weight:800;letter-spacing:.5px;cursor:pointer;
+  border-bottom:3px solid transparent;display:flex;align-items:center;
+  justify-content:center;gap:7px;
+}
+.modebtn.on{color:var(--ink);border-bottom-color:var(--acc);background:var(--bg);}
+.modebtn .em{font-size:15px;}
+
+header{
+  background:var(--panel);border-bottom:2px solid var(--acc);
+  padding:13px 16px;display:flex;align-items:center;gap:10px;
+}
+.logo{font-weight:900;font-size:18px;letter-spacing:-.5px;}
+.logo b{color:var(--acc);}
+.role{
+  margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.8px;
+  padding:4px 9px;border-radius:5px;text-transform:uppercase;
+}
+.role.web{background:rgba(58,160,216,.15);color:var(--info);border:1px solid #2c5d72;}
+.role.mob{background:rgba(255,91,31,.15);color:var(--acc);border:1px solid #6e3a23;}
+
+main{flex:1;padding:18px 16px;display:flex;flex-direction:column;gap:16px;}
+.view{display:none;flex-direction:column;gap:16px;}
+.view.on{display:flex;}
+.screen{display:none;flex-direction:column;gap:14px;}
+.screen.on{display:flex;}
+
+.hd{font-size:12px;font-weight:800;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;}
+.title{font-size:21px;font-weight:900;letter-spacing:-.3px;}
+.sub{font-size:13px;color:var(--mut);line-height:1.55;}
+
+.field{display:flex;flex-direction:column;gap:7px;}
+.field label{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--mut);text-transform:uppercase;}
+.field input[type=text]{
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:15px;font-size:18px;font-family:var(--mono);color:var(--ink);letter-spacing:.5px;
+}
+.field input:focus{outline:none;border-color:var(--acc);}
+.field.center input{text-align:center;font-size:22px;letter-spacing:1px;}
+
+.drop{
+  border:2px dashed var(--line);border-radius:12px;padding:30px 18px;
+  text-align:center;cursor:pointer;transition:.15s;background:var(--panel);
+}
+.drop:hover{border-color:var(--acc);background:var(--panel2);}
+.drop.has{border-color:var(--ok);border-style:solid;}
+.drop .ic{font-size:34px;}
+.drop .t{font-weight:800;margin-top:8px;font-size:15px;}
+.drop .d{font-size:12px;color:var(--mut);margin-top:4px;}
+.drop .fname{
+  margin-top:10px;font-family:var(--mono);font-size:13px;color:var(--ok);
+  font-weight:700;word-break:break-all;
+}
+
+.btn{
+  background:var(--acc);color:#fff;border:none;border-radius:10px;
+  padding:17px;font-size:16px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  transition:.1s;letter-spacing:.3px;
+}
+.btn:active{transform:scale(.98);filter:brightness(1.1);}
+.btn:disabled{background:#3a414a;color:var(--mut);cursor:not-allowed;}
+.btn.ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);}
+.btn.ok{background:var(--ok);}
+.btn.info{background:var(--info);}
+.btn.sm{padding:12px;font-size:13px;}
+
+.alert{border-radius:10px;padding:13px;font-size:13px;font-weight:600;line-height:1.5;}
+.alert.err{background:rgba(255,59,59,.12);border:1px solid var(--err);color:#ff9b9b;}
+.alert.ok{background:rgba(31,185,90,.12);border:1px solid var(--ok);color:#7ee0a3;}
+.alert.warn{background:rgba(255,176,0,.1);border:1px solid var(--acc2);color:var(--acc2);}
+.alert.info{background:rgba(58,160,216,.1);border:1px solid var(--info);color:#8fcdec;}
+
+.porow{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:13px 15px;display:flex;align-items:center;gap:12px;
+}
+.porow .pi{font-size:20px;}
+.porow .pn{font-family:var(--mono);font-weight:700;font-size:15px;}
+.porow .pm{font-size:11px;color:var(--mut);margin-top:2px;}
+.porow .del{margin-left:auto;background:none;border:none;color:var(--mut);
+  font-size:18px;cursor:pointer;padding:6px;}
+
+
+.scanhint{text-align:center;font-size:13px;color:var(--acc2);font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--acc2);animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:.2;}}
+#reader{width:100%;border-radius:12px;overflow:hidden;background:#000;
+  border:2px solid var(--acc);min-height:230px;}
+#reader video{display:block;width:100%;}
+.divider{display:flex;align-items:center;gap:12px;color:var(--mut);
+  font-size:10px;font-weight:800;letter-spacing:1px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.card-top{background:var(--panel2);padding:13px 15px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;}
+.card-top .et{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--acc2);}
+.badge{font-size:10px;font-weight:800;padding:4px 9px;border-radius:20px;}
+.badge.frz{background:rgba(58,160,216,.15);color:#5fc3e8;border:1px solid #2b6a7d;}
+.card-body{padding:4px 15px;}
+.row{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid var(--line);}
+.row:last-child{border-bottom:none;}
+.row .k{font-size:11px;color:var(--mut);font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.row .v{font-size:16px;font-weight:800;font-family:var(--mono);}
+.row .v.big{font-size:21px;color:var(--acc2);}
+
+#labelArea{background:#fff;border-radius:8px;}
+.lbl{background:#fff;color:#000;padding:13px;font-family:var(--mono);border:3px solid #000;}
+.lbl-h{text-align:center;border-bottom:3px solid #000;padding-bottom:7px;margin-bottom:7px;}
+.lbl-h .t1{font-size:18px;font-weight:900;letter-spacing:.5px;}
+.lbl-h .t2{font-size:11px;font-weight:700;}
+.lbl-et{text-align:center;margin:9px 0;}
+.lbl-et .lab{font-size:10px;font-weight:700;letter-spacing:2px;}
+.lbl-et .num{font-size:30px;font-weight:900;letter-spacing:1px;}
+.lbl-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:11px;font-weight:700;margin:7px 0;}
+.lbl-grid .c{display:flex;justify-content:space-between;border-bottom:1px dotted #000;padding:3px 0;}
+.lbl-bc{text-align:center;margin-top:7px;border-top:3px solid #000;padding-top:7px;}
+.lbl-bc svg{max-width:100%;height:62px;}
+.lbl-bc .bctext{font-size:10px;font-weight:700;letter-spacing:.5px;margin-top:3px;word-break:break-all;}
+.lbl-foot{text-align:center;font-size:8px;margin-top:5px;color:#333;}
+
+.supplier-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+}
+.supplier-card-head{
+  background:var(--panel2);padding:12px 15px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;
+}
+.supplier-card-head .sname{font-weight:900;font-size:15px;flex:1;}
+.supplier-card-head .sdel{background:none;border:none;color:var(--mut);font-size:16px;cursor:pointer;padding:4px 8px;}
+.supplier-card-body{padding:10px 15px;font-size:12px;color:var(--mut);line-height:1.7;}
+.supplier-card-body b{color:var(--ink);}
+.supplier-card-body .preview-thumb{
+  width:100%;max-height:120px;object-fit:cover;border-radius:8px;
+  margin-top:8px;border:1px solid var(--line);
+}
+.cfg-drop{
+  border:2px dashed var(--line);border-radius:12px;padding:24px 16px;
+  text-align:center;cursor:pointer;transition:.15s;background:var(--panel);
+}
+.cfg-drop:hover{border-color:var(--acc);background:var(--panel2);}
+.cfg-drop.has{border-color:var(--ok);border-style:solid;}
+.cfg-drop .ic{font-size:30px;}
+.cfg-drop .t{font-weight:800;margin-top:6px;font-size:14px;}
+.cfg-drop .d{font-size:11px;color:var(--mut);margin-top:3px;}
+.cfg-drop .fname{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--ok);font-weight:700;}
+.ai-thinking{display:flex;align-items:center;gap:10px;padding:13px;
+  background:rgba(58,160,216,.08);border:1px solid rgba(58,160,216,.3);border-radius:10px;}
+.ai-thinking .spin{width:18px;height:18px;border:2px solid var(--info);border-top-color:transparent;
+  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.field-tag{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,176,0,.12);border:1px solid var(--acc2);color:var(--acc2);
+  border-radius:6px;padding:4px 10px;font-size:12px;font-weight:800;font-family:var(--mono);}
+.steps{display:flex;gap:6px;}
+.step{flex:1;height:4px;border-radius:2px;background:var(--line);}
+.step.on{background:var(--acc);}
+
+.foot{padding:11px 16px;text-align:center;font-size:10px;color:var(--mut);border-top:1px solid var(--line);}
+.recent{display:flex;flex-direction:column;gap:7px;}
+.recent-item{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:9px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+.recent-item .re{font-family:var(--mono);font-weight:700;}
+.recent-item .rt{font-size:10px;color:var(--mut);}
+.stat{display:flex;gap:10px;}
+.stat .box{flex:1;background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:11px;text-align:center;}
+.stat .n{font-size:22px;font-weight:900;color:var(--acc2);font-family:var(--mono);}
+.stat .l{font-size:9px;color:var(--mut);font-weight:700;letter-spacing:.5px;margin-top:2px;}
+.empty{text-align:center;padding:24px;color:var(--mut);font-size:13px;}
+
+@media print{
+  body *{visibility:hidden;}
+  #labelArea,#labelArea *{visibility:visible;}
+  #labelArea{position:absolute;left:0;top:0;width:100%;}
+}
+</style>
+</head>
+<body>
+<div id="root">
+
+<div class="modebar">
+  <button class="modebtn on" id="m-web"><span class="em">🖥️</span> <span data-i18n="app.web">PLATAFORMA WEB</span></button>
+  <button class="modebtn" id="m-cfg"><span class="em">⚙️</span> <span data-i18n="app.cfg">PARAMETRIZAÇÃO</span></button>
+  <button class="modebtn" id="m-mob"><span class="em">📱</span> <span data-i18n="app.mob">APP CELULAR</span></button>
+</div>
+
+<header>
+  <div class="logo">RE<b>LABEL</b></div>
+  <div class="role web" id="roleTag" data-i18n="role.web">Inseridor de Dados</div>
+  <div style="margin-left:auto;display:flex;gap:4px;">
+    <button class="lang-btn on" id="lang-pt">PT</button>
+    <button class="lang-btn" id="lang-es">ES</button>
+    <button class="lang-btn" id="lang-en">EN</button>
+  </div>
+</header>
+
+<main>
+<div id="bootMsg"></div>
+
+<!-- ============ PLATAFORMA WEB ============ -->
+<div class="view on" id="view-web">
+  <div class="title" data-i18n="web.title">Cadastro de Batch</div>
+  <div class="sub" data-i18n="web.sub">Informe o número da Purchase Order e anexe o batch report.</div>
+
+  <div class="field">
+    <label data-i18n="web.po.label">Número da Purchase Order</label>
+    <input type="text" id="poInput" data-i18n="web.po.placeholder" data-i18n-attr="placeholder" placeholder="Ex.: 1TEN2026-FA">
+  </div>
+
+  <div class="field">
+    <label data-i18n="web.file.label">Batch Report (.xlsx)</label>
+    <div class="cfg-drop" id="dropZone">
+      <div class="ic">📄</div>
+      <div class="t" data-i18n="web.file.drop">Toque para selecionar o arquivo</div>
+      <div class="d" data-i18n="web.file.hint">Excel do fabricante</div>
+      <div class="fname" id="fname"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx" style="display:none">
+  </div>
+
+  <div id="webMsg"></div>
+  <button class="btn info" id="btnAnalyze" disabled data-i18n="web.btn.analyze">🤖 Analisar colunas com IA</button>
+
+  <!-- painel de confirmação de mapeamento -->
+  <div id="mapPanel" style="display:none;">
+    <div class="title" style="font-size:17px;" data-i18n="map.title">Mapeamento de Colunas</div>
+    <div class="sub" data-i18n="map.sub">A IA identificou as colunas abaixo. Confirme ou ajuste.</div>
+    <div id="mapGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
+    <div id="mapMsg" style="margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn ghost sm" id="btnReanalyze" style="flex:1;" data-i18n="map.btn.reanalyze">🔄 Reanalisar</button>
+      <button class="btn ok" id="btnSave" style="flex:2;" disabled data-i18n="map.btn.confirm">✓ Confirmar e salvar</button>
+    </div>
+  </div>
+
+  <div class="hd" style="margin-top:8px;" data-i18n="web.batches.title">Batches cadastrados</div>
+  <div id="poList"></div>
+</div>
+
+<!-- ============ PARAMETRIZAÇÃO ============ -->
+<div class="view" id="view-cfg">
+  <div class="title" data-i18n="cfg.title">Parametrização de Fornecedores</div>
+  <div class="sub" data-i18n="cfg.sub">Cadastre o layout do label de cada fornecedor.</div>
+
+  <!-- form novo fornecedor -->
+  <div class="field">
+    <label>Nome do Fornecedor</label>
+    <input type="text" id="cfgSupplierName" placeholder="Ex.: Frigorífico La Pampa">
+  </div>
+
+  <div class="field">
+    <label>Foto de exemplo do label</label>
+    <div class="cfg-drop" id="cfgDrop">
+      <div class="ic">🏷️</div>
+      <div class="t">Toque para selecionar uma foto</div>
+      <div class="d">JPG, PNG, WEBP, GIF ou PDF do label físico do fabricante</div>
+      <div class="fname" id="cfgFname"></div>
+    </div>
+    <input type="file" id="cfgFileInput" accept="image/*,application/pdf" style="display:none">
+  </div>
+
+  <!-- preview da imagem carregada -->
+  <div id="cfgImgWrap" style="display:none;">
+    <img id="cfgImgPreview" style="width:100%;border-radius:10px;border:1px solid var(--line);" alt="preview">
+  </div>
+
+  <!-- status da análise da IA -->
+  <div id="cfgAiStatus" style="display:none;"></div>
+
+  <!-- resultado da análise -->
+  <div id="cfgResult" style="display:none;">
+    <div class="hd" style="margin-bottom:8px">Campo identificado pela IA</div>
+    <div class="alert ok" id="cfgResultBox" style="font-size:13px;"></div>
+    <div class="sub" style="margin-top:6px;font-size:11px;">Confirme se está correto antes de salvar. Se errado, ajuste no campo abaixo.</div>
+    <div class="field" style="margin-top:10px;">
+      <label>Campo identificado (editável)</label>
+      <input type="text" id="cfgFieldName" placeholder="Ex.: ETIQUETA, BOX ID, N° CAJA…">
+    </div>
+    <div class="field">
+      <label>Descrição da localização no label (editável)</label>
+      <input type="text" id="cfgFieldDesc" placeholder="Ex.: número grande no centro superior">
+    </div>
+  </div>
+
+  <button class="btn info" id="cfgBtnAnalyze" disabled>🤖 Analisar label com IA</button>
+  <button class="btn ok"   id="cfgBtnSave"    style="display:none;">💾 Salvar perfil do fornecedor</button>
+  <div id="cfgMsg"></div>
+
+  <!-- lista de fornecedores cadastrados -->
+  <div id="cfgSupplierListWrap" style="display:none;">
+    <div class="hd" style="margin-top:4px;">Fornecedores cadastrados</div>
+    <div id="cfgSupplierList" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ============ APP CELULAR ============ -->
+<div class="view" id="view-mob">
+
+  <section class="screen on" id="ms-po">
+    <div class="steps"><div class="step on"></div><div class="step"></div><div class="step"></div></div>
+    <div class="hd">1 · Purchase Order</div>
+    <div class="title"><span data-i18n="mob.po.title">Selecione a PO</span></div>
+    <div class="sub"><span data-i18n="mob.po.sub">Escolha a Purchase Order que voce esta recebendo.</span></div>
+    <div class="field" style="margin-bottom:0;">
+      <input type="text" id="poSearch" data-i18n="mob.po.search" data-i18n-attr="placeholder"
+             placeholder="Pesquisar PO..."
+             style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+                    padding:12px 15px;font-size:15px;color:var(--ink);width:100%;">
+    </div>
+    <div id="mobPoList"></div>
+  </section>
+
+  <section class="screen" id="ms-scan">
+    <div class="steps"><div class="step on"></div><div class="step on"></div><div class="step"></div></div>
+    <div class="hd">2 · Ler caixa — PO <span id="scanPoName"></span></div>
+
+    <!-- área da câmera / preview da foto -->
+    <div id="camWrap" style="position:relative;border-radius:12px;overflow:hidden;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center;">
+      <video id="camVideo" autoplay playsinline muted style="width:100%;display:block;"></video>
+      <canvas id="camCanvas" style="display:none;"></canvas>
+      <!-- overlay da foto tirada -->
+      <img id="photoPreview" style="display:none;width:100%;border-radius:0;" alt="foto">
+      <!-- placeholder antes de abrir câmera -->
+      <div id="camPlaceholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8a96a5;font-size:13px;text-align:center;padding:20px;">
+        <div style="font-size:36px;">📷</div>
+        <div style="font-weight:700;">Câmera não iniciada</div>
+        <div style="font-size:11px;">Toque em "Abrir câmera" abaixo</div>
+      </div>
+    </div>
+
+    <!-- botões de câmera -->
+    <div id="camControls" style="display:flex;gap:8px;">
+      <button class="btn info" id="btnOpenCam" style="flex:1;"><span data-i18n="mob.scan.open">📷 Abrir câmera</span></button>
+      <button class="btn ok"   id="btnSnap"    style="flex:1;display:none;"><span data-i18n="mob.scan.snap">📸 Tirar foto</span></button>
+    </div>
+    <button class="btn ghost sm" id="btnRetake" style="display:none;"><span data-i18n="mob.scan.retake">🔄 Outra foto</span></button>
+
+    <!-- status da IA -->
+    <div id="aiStatus" style="display:none;" class="alert info">
+      <span id="aiStatusText">🤖 Analisando imagem…</span>
+    </div>
+
+    <div class="divider">ou digite</div>
+    <div class="field center">
+      <label>Nº da etiqueta</label>
+      <input type="text" id="manualInput" inputmode="numeric" placeholder="411000277639">
+    </div>
+    <button class="btn" id="btnManual"><span data-i18n="mob.scan.btn">🔍 Consultar caixa</span></button>
+    <button class="btn ghost sm" id="btnBackPo"><span data-i18n="mob.scan.back">← Trocar PO</span></button>
+    <div id="scanMsg"></div>
+    <div id="recentWrap" style="display:none">
+      <div class="stat" style="margin-top:6px">
+        <div class="box"><div class="n" id="statCount">0</div><div class="l" data-i18n="mob.stats.done">REETIQUETADAS</div></div>
+        <div class="box"><div class="n" id="statTotal">0</div><div class="l" data-i18n="mob.stats.total">TOTAL NA PO</div></div>
+      </div>
+      <div class="hd" style="margin-top:8px"><span data-i18n="mob.history">Histórico da sessão</span></div>
+      <div class="recent" id="recentList"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="ms-confirm">
+    <div class="steps"><div class="step on"></div><div class="step on"></div><div class="step on"></div></div>
+    <div class="hd">3 · <span data-i18n="mob.confirm.title">Confira os dados</span></div>
+    <div id="warnBox"></div>
+    <div class="card">
+      <div class="card-top">
+        <span class="et" id="cEt">—</span>
+        <span class="badge frz" id="cEstado">—</span>
+      </div>
+      <div class="card-body">
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.product">Produto</span></span><span class="v" id="cNome" style="font-size:12px">—</span></div>
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.gross">Peso Bruto</span></span><span class="v big" id="cBruto">—</span></div>
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.net">Peso Líquido</span></span><span class="v big" id="cNeto">—</span></div>
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.prod">Data Produção</span></span><span class="v" id="cProd">—</span></div>
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.exp">Data Validade</span></span><span class="v" id="cVenc">—</span></div>
+        <div class="row"><span class="k"><span data-i18n="mob.confirm.lot">Lote / Tropa</span></span><span class="v" id="cLote">—</span></div>
+      </div>
+    </div>
+    <div class="alert warn"><span data-i18n="mob.confirm.warn">⚠️ Confira peso e validade com o label físico antes de imprimir.</span></div>
+    <button class="btn ok" id="btnPrint"><span data-i18n="mob.confirm.btn">✓ Confirmar e gerar label</span></button>
+    <button class="btn ghost sm" id="btnBackScan"><span data-i18n="mob.confirm.back">← Ler outra caixa</span></button>
+  </section>
+
+  <section class="screen" id="ms-label">
+    <div class="hd"><span data-i18n="mob.label.title">Novo label — pronto p/ impressão</span></div>
+    <div class="sub">Código de barras <b>GS1-128</b> com os campos (01) GTIN, (11) data de produção, (3202) peso líquido e (21) lote/serial — compatível com o bip do armazém.</div>
+    <div id="lblWarn"></div>
+    <div id="labelArea"><div class="lbl" id="lblContent"></div></div>
+    <button class="btn" id="btnDoPrint"><span data-i18n="mob.label.print">🖨️ Enviar para impressora</span></button>
+    <button class="btn ok sm" id="btnNext"><span data-i18n="mob.label.next">✓ Concluída — próxima caixa</span></button>
+    <div class="alert info" style="font-size:11px">No app nativo, este botão envia o label direto à impressora Bluetooth de bolso. Neste protótipo, usa a impressão do dispositivo.</div>
+  </section>
+
+</div>
+
+</main>
+<div class="foot"><span data-i18n="footer">ReLabel · web e celular compartilham dados localmente</span></div>
+</div>
+
+<!-- ============ DEPLOY MODAL ============ -->
+<div id="deployModal" class="deploy-modal" style="display:none;" onclick="if(event.target===this) hideDeployModal()">
+  <div class="deploy-sheet">
+    <div class="ds-title">🚀 Publicar no GitHub Pages</div>
+    <div class="ds-sub">Seu app ficará disponível em <b>https://SEU-USUARIO.github.io/relabel</b> — abre no celular, computador, em qualquer lugar. Grátis e permanente.</div>
+
+    <div class="deploy-step">
+      <div class="sn">1</div>
+      <div class="sc">
+        <b>Token do GitHub</b>
+        <span>Acesse <a href="https://github.com/settings/tokens/new?scopes=repo&description=ReLabel+Deploy" target="_blank" style="color:var(--info);">github.com/settings/tokens</a> → Generate new token (classic) → marque <b>repo</b> → copie o token</span>
+        <input type="password" id="deployToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+    </div>
+
+    <div class="deploy-step">
+      <div class="sn">2</div>
+      <div class="sc">
+        <b>Nome do repositório</b>
+        <span>Será criado automaticamente se não existir</span>
+        <input type="text" id="deployRepo" value="relabel" placeholder="relabel">
+      </div>
+    </div>
+
+    <div id="deployStatus" style="display:none;"></div>
+
+    <button class="btn ok" id="deployBtn" onclick="runDeploy()">🚀 Publicar agora</button>
+    <button class="btn ghost sm" onclick="hideDeployModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MiniZip: descompressor ZIP+DEFLATE embutido. Zero dependencias externas. -->
+<script>
+/* ================================================================
+   MiniZip — leitor de ZIP + inflate (DEFLATE) em JS puro.
+   Suficiente para ler .xlsx (que eh um ZIP com DEFLATE ou Stored).
+   Nao requer internet. Expoe window.fflate = { unzipSync }.
+   ================================================================ */
+(function(){
+"use strict";
+
+var CLens=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+var LBase=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+var LExtra=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+var DBase=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+var DExtra=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+
+function buildTree(lens,maxSym){
+  var counts=new Int32Array(16),i,b,s;
+  for(i=0;i<lens.length;i++) if(lens[i]) counts[lens[i]]++;
+  var nextCode=new Int32Array(16),code=0;
+  for(b=1;b<16;b++){code=(code+counts[b-1])<<1;nextCode[b]=code;}
+  var sym=new Int32Array(maxSym),len2=new Uint8Array(maxSym);
+  for(s=0;s<lens.length;s++){var l=lens[s];if(l){sym[s]=nextCode[l]++;len2[s]=l;}}
+  var mx=0; for(i=0;i<lens.length;i++) if(lens[i]>mx) mx=lens[i];
+  return {sym:sym,len:len2,maxLen:mx};
+}
+
+function BitReader(buf,pos){this.b=buf;this.p=pos;this.bits=0;this.nbits=0;}
+BitReader.prototype.read=function(n){
+  while(this.nbits<n){this.bits|=(this.b[this.p++]&0xff)<<this.nbits;this.nbits+=8;}
+  var v=this.bits&((1<<n)-1);this.bits>>>=n;this.nbits-=n;return v;
+};
+BitReader.prototype.decode=function(tree){
+  var code=0,len=0,s;
+  for(;;){
+    code=(code<<1)|this.read(1);len++;
+    for(s=0;s<tree.sym.length;s++){if(tree.len[s]===len&&tree.sym[s]===code)return s;}
+    if(len>tree.maxLen)throw new Error('inflate: huffman decode error');
+  }
+};
+
+var fixedLitLens=(function(){
+  var l=new Uint8Array(288),i;
+  for(i=0;i<144;i++)l[i]=8;for(i=144;i<256;i++)l[i]=9;
+  for(i=256;i<280;i++)l[i]=7;for(i=280;i<288;i++)l[i]=8;
+  return l;
+})();
+var fixedDistLens=new Uint8Array(32);for(var _i=0;_i<32;_i++)fixedDistLens[_i]=5;
+var fixedLit=buildTree(fixedLitLens,288);
+var fixedDist=buildTree(fixedDistLens,32);
+
+function inflate(src,pos){
+  var br=new BitReader(src,pos);
+  var out=[],oi=0,done=false;
+  while(!done){
+    var bfinal=br.read(1),btype=br.read(2);
+    if(btype===0){
+      br.nbits=0;br.bits=0;
+      var p2=br.p,len=(src[p2]|(src[p2+1]<<8));br.p+=4;
+      for(var i=0;i<len;i++)out[oi++]=src[br.p++];
+    } else {
+      var litTree,distTree;
+      if(btype===1){litTree=fixedLit;distTree=fixedDist;}
+      else {
+        var hlit=br.read(5)+257,hdist=br.read(5)+1,hclen=br.read(4)+4;
+        var clLens=new Uint8Array(19);
+        for(var i=0;i<hclen;i++)clLens[CLens[i]]=br.read(3);
+        var clTree=buildTree(clLens,19);
+        var allLens=new Uint8Array(hlit+hdist),ai=0;
+        while(ai<hlit+hdist){
+          var sym=br.decode(clTree);
+          if(sym<16){allLens[ai++]=sym;}
+          else if(sym===16){var rep=allLens[ai-1],rn=br.read(2)+3;while(rn--)allLens[ai++]=rep;}
+          else if(sym===17){var rn=br.read(3)+3;while(rn--)allLens[ai++]=0;}
+          else{var rn=br.read(7)+11;while(rn--)allLens[ai++]=0;}
+        }
+        litTree=buildTree(allLens.subarray(0,hlit),hlit);
+        distTree=buildTree(allLens.subarray(hlit),hdist);
+      }
+      for(;;){
+        var sym=br.decode(litTree);
+        if(sym<256){out[oi++]=sym;}
+        else if(sym===256){break;}
+        else{
+          var li=sym-257,length=LBase[li]+br.read(LExtra[li]);
+          var di=br.decode(distTree),dist=DBase[di]+br.read(DExtra[di]);
+          var from=oi-dist;
+          for(var c=0;c<length;c++)out[oi++]=out[from++];
+        }
+      }
+    }
+    if(bfinal)done=true;
+  }
+  return new Uint8Array(out);
+}
+
+function u32le(v,p){return((v[p])|(v[p+1]<<8)|(v[p+2]<<16)|((v[p+3]&0x7f)<<24))>>>0;}
+function u16le(v,p){return(v[p]|(v[p+1]<<8))>>>0;}
+
+function unzipSync(data){
+  var v=data,files={};
+  var eocd=-1;
+  for(var i=v.length-22;i>=0;i--){
+    if(v[i]===0x50&&v[i+1]===0x4b&&v[i+2]===0x05&&v[i+3]===0x06){eocd=i;break;}
+  }
+  if(eocd<0)throw new Error('ZIP: estrutura invalida (EOCD nao encontrado). O arquivo .xlsx pode estar corrompido.');
+  var cdCount=u16le(v,eocd+8);
+  var p=u32le(v,eocd+16);
+  for(var e=0;e<cdCount;e++){
+    if(v[p]!==0x50||v[p+1]!==0x4b||v[p+2]!==0x01||v[p+3]!==0x02)
+      throw new Error('ZIP: central directory invalido em offset '+p);
+    var method=u16le(v,p+10);
+    var compSize=u32le(v,p+20);
+    var fnLen=u16le(v,p+28);
+    var extraLen=u16le(v,p+30);
+    var cmtLen=u16le(v,p+32);
+    var localOff=u32le(v,p+42);
+    var fname='';
+    for(var fi=0;fi<fnLen;fi++)fname+=String.fromCharCode(v[p+46+fi]);
+    p+=46+fnLen+extraLen+cmtLen;
+    var lp=localOff;
+    if(v[lp]!==0x50||v[lp+1]!==0x4b||v[lp+2]!==0x03||v[lp+3]!==0x04)
+      throw new Error('ZIP: local header invalido para '+fname);
+    var lfnLen=u16le(v,lp+26);
+    var lextraLen=u16le(v,lp+28);
+    var dataStart=lp+30+lfnLen+lextraLen;
+    var chunk=v.subarray(dataStart,dataStart+compSize);
+    if(method===0){files[fname]=chunk.slice(0);}
+    else if(method===8){
+      try{files[fname]=inflate(chunk,0);}
+      catch(e2){console.warn('MiniZip: erro ao inflar '+fname,e2);}
+    }
+  }
+  return files;
+}
+
+window.fflate={unzipSync:unzipSync};
+})();
+</script>
+<!-- html5-qrcode removido: câmera agora usa foto + IA -->
+
+<script>
+"use strict";
+(function(){
+
+/* ============================================================
+   0. AMBIENTE — detecta o que carregou e avisa em vez de quebrar
+   ============================================================ */
+var ENV = {
+  fflate: true, /* MiniZip embutido — sempre disponivel */
+  qr:     false, /* substituido por camera+IA */
+  fileUrl:(location.protocol === 'file:')
+};
+window.addEventListener('error', function(e){
+  // mostra erros reais na tela em vez de só "Script error" no console
+  var b=document.getElementById('bootMsg');
+  if(b && !b.dataset.shown){
+    b.dataset.shown='1';
+    b.innerHTML='<div class="alert warn">Aviso técnico: '+(e.message||'erro de script')+
+      '. O app continua utilizável — use a digitação manual se a câmera não abrir.</div>';
+  }
+});
+
+
+/* ============================================================
+   I18N — internacionalização (PT / ES / EN)
+   Detecção automática pelo browser; usuário pode trocar.
+   T(key) retorna a string no idioma atual.
+   ============================================================ */
+var LANGS={
+  pt:{
+    /* UI geral */
+    'app.web':'PLATAFORMA WEB','app.cfg':'PARAMETRIZAÇÃO','app.mob':'APP CELULAR',
+    'role.web':'Inseridor de Dados','role.cfg':'Parametrização','role.mob':'Operador Armazém',
+    'footer':'ReLabel · web e celular compartilham dados localmente (substituível por API)',
+    /* Plataforma web */
+    'web.title':'Cadastro de Batch',
+    'web.sub':'Informe o número da Purchase Order e anexe o batch report (Excel) recebido do fabricante.',
+    'web.po.label':'Número da Purchase Order',
+    'web.po.placeholder':'Ex.: 1TEN2026-FA',
+    'web.file.label':'Batch Report (.xlsx)',
+    'web.file.drop':'Toque para selecionar o arquivo',
+    'web.file.hint':'Excel do fabricante',
+    'web.btn.analyze':'🤖 Analisar colunas com IA',
+    'web.btn.save':'💾 Processar e salvar batch',
+    'web.batches.title':'Batches cadastrados',
+    'web.batches.empty':'Nenhum batch cadastrado ainda.',
+    'web.batches.boxes':'caixas',
+    'web.delete.confirm':'Tem certeza?',
+    /* Mapeamento de colunas */
+    'map.title':'Mapeamento de Colunas',
+    'map.sub':'A IA identificou as colunas abaixo. Confirme ou ajuste antes de salvar.',
+    'map.col.box':'Nº da Caixa',
+    'map.col.product':'Produto',
+    'map.col.lot':'Lote',
+    'map.col.prod_date':'Data Produção',
+    'map.col.exp_date':'Data Validade',
+    'map.col.net':'Peso Líquido',
+    'map.col.gross':'Peso Bruto',
+    'map.col.remito':'Remito',
+    'map.col.state':'Estado',
+    'map.none':'— não encontrado —',
+    'map.btn.confirm':'✓ Confirmar e salvar batch',
+    'map.btn.reanalyze':'🔄 Reanalisar',
+    /* Parametrização */
+    'cfg.title':'Parametrização de Fornecedores',
+    'cfg.sub':'Cadastre o layout do label de cada fornecedor. A IA analisa uma foto e identifica o campo do número de caixa.',
+    'cfg.name.label':'Nome do Fornecedor',
+    'cfg.name.placeholder':'Ex.: Frigorífico La Pampa',
+    'cfg.photo.label':'Foto de exemplo do label',
+    'cfg.photo.drop':'Toque para selecionar uma foto',
+    'cfg.photo.hint':'JPG, PNG, WEBP, GIF ou PDF',
+    'cfg.btn.analyze':'🤖 Analisar label com IA',
+    'cfg.btn.save':'💾 Salvar perfil do fornecedor',
+    'cfg.field.label':'Campo identificado (editável)',
+    'cfg.desc.label':'Localização no label (editável)',
+    'cfg.suppliers.title':'Fornecedores cadastrados',
+    'cfg.suppliers.empty':'Nenhum fornecedor cadastrado.',
+    /* App celular */
+    'mob.po.title':'Selecione a PO','mob.po.sub':'Escolha a Purchase Order que voce esta recebendo.','mob.po.search':'Pesquisar PO...',
+    'mob.po.empty':'Nenhuma PO disponível. Cadastre um batch na Plataforma Web primeiro.',
+    'mob.scan.hint':'Abra a câmera ou digite o número',
+    'mob.scan.open':'📷 Abrir câmera','mob.scan.snap':'📸 Tirar foto','mob.scan.retake':'🔄 Outra foto',
+    'mob.scan.manual.label':'Nº da etiqueta',
+    'mob.scan.btn':'🔍 Consultar caixa',
+    'mob.scan.back':'← Trocar PO',
+    'mob.scan.ai':'🤖 Analisando imagem…',
+    'mob.confirm.title':'Confira os dados',
+    'mob.confirm.product':'Produto','mob.confirm.gross':'Peso Bruto','mob.confirm.net':'Peso Líquido',
+    'mob.confirm.prod':'Data Produção','mob.confirm.exp':'Data Validade','mob.confirm.lot':'Lote / Tropa',
+    'mob.confirm.warn':'⚠️ Confira peso e validade com o label físico antes de imprimir.',
+    'mob.confirm.btn':'✓ Confirmar e gerar label',
+    'mob.confirm.back':'← Ler outra caixa',
+    'mob.label.title':'Novo label — pronto p/ impressão',
+    'mob.label.sub':'Código de barras GS1-128',
+    'mob.label.print':'🖨️ Enviar para impressora',
+    'mob.label.next':'✓ Concluída — próxima caixa',
+    'mob.stats.done':'REETIQUETADAS','mob.stats.total':'TOTAL NA PO',
+    'mob.history':'Histórico da sessão',
+    'mob.not_found':'❌ Caixa <b>{code}</b> não encontrada na PO {po}.',
+    'mob.not_found_hint':'Exemplos de códigos nesta PO: {examples}',
+    /* erros */
+    'err.no_camera':'❌ Câmera não suportada. Use a digitação manual.',
+    'err.camera_denied':'❌ Não foi possível abrir a câmera: {msg}',
+    'err.ai_error':'❌ Erro da IA: {msg}',
+    'err.ai_no_code':'⚠️ Não foi possível identificar o número. Tente outra foto ou digite manualmente.',
+    'err.ai_fetch':'❌ Erro ao chamar a IA: {msg}',
+    'err.xlsx_format':'❌ O arquivo precisa ser .xlsx',
+    'err.xlsx_read':'❌ Erro ao processar o arquivo: {msg}',
+    'err.no_boxes':'❌ Nenhuma caixa encontrada após mapeamento.',
+  },
+  es:{
+    'app.web':'PLATAFORMA WEB','app.cfg':'PARAMETRIZACIÓN','app.mob':'APP CELULAR',
+    'role.web':'Cargador de Datos','role.cfg':'Parametrización','role.mob':'Operador Depósito',
+    'footer':'ReLabel · web y celular comparten datos localmente (reemplazable por API)',
+    'web.title':'Registro de Batch',
+    'web.sub':'Ingrese el número de Purchase Order y adjunte el batch report (Excel) del fabricante.',
+    'web.po.label':'Número de Purchase Order',
+    'web.po.placeholder':'Ej.: 1TEN2026-FA',
+    'web.file.label':'Batch Report (.xlsx)',
+    'web.file.drop':'Toque para seleccionar el archivo',
+    'web.file.hint':'Excel del fabricante',
+    'web.btn.analyze':'🤖 Analizar columnas con IA',
+    'web.btn.save':'💾 Procesar y guardar batch',
+    'web.batches.title':'Batches registrados',
+    'web.batches.empty':'Ningún batch registrado todavía.',
+    'web.batches.boxes':'cajas',
+    'web.delete.confirm':'¿Está seguro?',
+    'map.title':'Mapeo de Columnas',
+    'map.sub':'La IA identificó las columnas abajo. Confirme o ajuste antes de guardar.',
+    'map.col.box':'N° de Caja','map.col.product':'Producto','map.col.lot':'Lote',
+    'map.col.prod_date':'Fecha Producción','map.col.exp_date':'Fecha Vencimiento',
+    'map.col.net':'Peso Neto','map.col.gross':'Peso Bruto','map.col.remito':'Remito','map.col.state':'Estado',
+    'map.none':'— no encontrado —',
+    'map.btn.confirm':'✓ Confirmar y guardar batch',
+    'map.btn.reanalyze':'🔄 Reanalizar',
+    'cfg.title':'Parametrización de Proveedores',
+    'cfg.sub':'Registre el layout de la etiqueta de cada proveedor. La IA analiza una foto e identifica el campo del número de caja.',
+    'cfg.name.label':'Nombre del Proveedor','cfg.name.placeholder':'Ej.: Frigorífico La Pampa',
+    'cfg.photo.label':'Foto de ejemplo de la etiqueta',
+    'cfg.photo.drop':'Toque para seleccionar una foto',
+    'cfg.photo.hint':'JPG, PNG, WEBP, GIF o PDF',
+    'cfg.btn.analyze':'🤖 Analizar etiqueta con IA',
+    'cfg.btn.save':'💾 Guardar perfil del proveedor',
+    'cfg.field.label':'Campo identificado (editable)',
+    'cfg.desc.label':'Ubicación en la etiqueta (editable)',
+    'cfg.suppliers.title':'Proveedores registrados',
+    'cfg.suppliers.empty':'Ningún proveedor registrado.',
+    'mob.po.title':'Seleccionar PO','mob.po.sub':'Elija la Purchase Order que esta recibiendo.','mob.po.search':'Buscar PO...',
+    'mob.po.empty':'Ninguna PO disponible. Registre un batch en la Plataforma Web primero.',
+    'mob.scan.hint':'Abra la cámara o ingrese el número',
+    'mob.scan.open':'📷 Abrir cámara','mob.scan.snap':'📸 Tomar foto','mob.scan.retake':'🔄 Otra foto',
+    'mob.scan.manual.label':'N° de etiqueta',
+    'mob.scan.btn':'🔍 Consultar caja',
+    'mob.scan.back':'← Cambiar PO',
+    'mob.scan.ai':'🤖 Analizando imagen…',
+    'mob.confirm.title':'Verificar datos',
+    'mob.confirm.product':'Producto','mob.confirm.gross':'Peso Bruto','mob.confirm.net':'Peso Neto',
+    'mob.confirm.prod':'Fecha Producción','mob.confirm.exp':'Fecha Vencimiento','mob.confirm.lot':'Lote / Tropa',
+    'mob.confirm.warn':'⚠️ Verifique peso y vencimiento con la etiqueta física antes de imprimir.',
+    'mob.confirm.btn':'✓ Confirmar y generar etiqueta',
+    'mob.confirm.back':'← Leer otra caja',
+    'mob.label.title':'Nueva etiqueta — lista para imprimir',
+    'mob.label.sub':'Código de barras GS1-128',
+    'mob.label.print':'🖨️ Enviar a impresora',
+    'mob.label.next':'✓ Terminada — siguiente caja',
+    'mob.stats.done':'REETIQUETADAS','mob.stats.total':'TOTAL EN PO',
+    'mob.history':'Historial de sesión',
+    'mob.not_found':'❌ Caja <b>{code}</b> no encontrada en la PO {po}.',
+    'mob.not_found_hint':'Ejemplos de códigos en esta PO: {examples}',
+    'err.no_camera':'❌ Cámara no soportada. Use el ingreso manual.',
+    'err.camera_denied':'❌ No se pudo abrir la cámara: {msg}',
+    'err.ai_error':'❌ Error de IA: {msg}',
+    'err.ai_no_code':'⚠️ No se pudo identificar el número. Intente otra foto o ingrese manualmente.',
+    'err.ai_fetch':'❌ Error al llamar a la IA: {msg}',
+    'err.xlsx_format':'❌ El archivo debe ser .xlsx',
+    'err.xlsx_read':'❌ Error al procesar el archivo: {msg}',
+    'err.no_boxes':'❌ Ninguna caja encontrada tras el mapeo.',
+  },
+  en:{
+    'app.web':'WEB PLATFORM','app.cfg':'SETTINGS','app.mob':'MOBILE APP',
+    'role.web':'Data Entry','role.cfg':'Settings','role.mob':'Warehouse Operator',
+    'footer':'ReLabel · web and mobile share data locally (replaceable by API)',
+    'web.title':'Batch Registration',
+    'web.sub':'Enter the Purchase Order number and attach the batch report (Excel) from the manufacturer.',
+    'web.po.label':'Purchase Order Number',
+    'web.po.placeholder':'E.g.: 1TEN2026-FA',
+    'web.file.label':'Batch Report (.xlsx)',
+    'web.file.drop':'Tap to select file',
+    'web.file.hint':'Manufacturer Excel file',
+    'web.btn.analyze':'🤖 Analyze columns with AI',
+    'web.btn.save':'💾 Process and save batch',
+    'web.batches.title':'Saved batches',
+    'web.batches.empty':'No batches saved yet.',
+    'web.batches.boxes':'boxes',
+    'web.delete.confirm':'Are you sure?',
+    'map.title':'Column Mapping',
+    'map.sub':'The AI identified the columns below. Confirm or adjust before saving.',
+    'map.col.box':'Box Number','map.col.product':'Product','map.col.lot':'Lot/Batch',
+    'map.col.prod_date':'Production Date','map.col.exp_date':'Expiry Date',
+    'map.col.net':'Net Weight','map.col.gross':'Gross Weight','map.col.remito':'Delivery Note','map.col.state':'State',
+    'map.none':'— not found —',
+    'map.btn.confirm':'✓ Confirm and save batch',
+    'map.btn.reanalyze':'🔄 Re-analyze',
+    'cfg.title':'Supplier Settings',
+    'cfg.sub':'Register each supplier label layout. The AI analyzes a photo and identifies the box number field.',
+    'cfg.name.label':'Supplier Name','cfg.name.placeholder':'E.g.: La Pampa Meatpacking',
+    'cfg.photo.label':'Sample label photo',
+    'cfg.photo.drop':'Tap to select a photo',
+    'cfg.photo.hint':'JPG, PNG, WEBP, GIF or PDF',
+    'cfg.btn.analyze':'🤖 Analyze label with AI',
+    'cfg.btn.save':'💾 Save supplier profile',
+    'cfg.field.label':'Identified field (editable)',
+    'cfg.desc.label':'Location on label (editable)',
+    'cfg.suppliers.title':'Saved suppliers',
+    'cfg.suppliers.empty':'No suppliers saved.',
+    'mob.po.title':'Select PO','mob.po.sub':'Choose the Purchase Order you are receiving.','mob.po.search':'Search PO...',
+    'mob.po.empty':'No PO available. Register a batch in the Web Platform first.',
+    'mob.scan.hint':'Open camera or enter number manually',
+    'mob.scan.open':'📷 Open camera','mob.scan.snap':'📸 Take photo','mob.scan.retake':'🔄 Retake',
+    'mob.scan.manual.label':'Label number',
+    'mob.scan.btn':'🔍 Find box',
+    'mob.scan.back':'← Change PO',
+    'mob.scan.ai':'🤖 Analyzing image…',
+    'mob.confirm.title':'Verify data',
+    'mob.confirm.product':'Product','mob.confirm.gross':'Gross Weight','mob.confirm.net':'Net Weight',
+    'mob.confirm.prod':'Production Date','mob.confirm.exp':'Expiry Date','mob.confirm.lot':'Lot / Batch',
+    'mob.confirm.warn':'Verify weight and expiry against the physical label before printing.',
+    'mob.confirm.btn':'✓ Confirm and generate label',
+    'mob.confirm.back':'← Scan another box',
+    'mob.label.title':'New label — ready to print',
+    'mob.label.sub':'GS1-128 barcode',
+    'mob.label.print':'🖨️ Send to printer',
+    'mob.label.next':'✓ Done — next box',
+    'mob.stats.done':'RELABELED','mob.stats.total':'TOTAL IN PO',
+    'mob.history':'Session history',
+    'mob.not_found':'❌ Box <b>{code}</b> not found in PO {po}.',
+    'mob.not_found_hint':'Example codes in this PO: {examples}',
+    'err.no_camera':'❌ Camera not supported. Use manual entry.',
+    'err.camera_denied':'❌ Could not open camera: {msg}',
+    'err.ai_error':'❌ AI error: {msg}',
+    'err.ai_no_code':'⚠️ Could not identify number. Try another photo or enter manually.',
+    'err.ai_fetch':'❌ Error calling AI: {msg}',
+    'err.xlsx_format':'❌ File must be .xlsx',
+    'err.xlsx_read':'❌ Error processing file: {msg}',
+    'err.no_boxes':'❌ No boxes found after mapping.',
+  }
+};
+
+/* detecta idioma do browser, com fallback para PT */
+var LANG_ORDER=['pt','es','en'];
+var currentLang=(function(){
+  var nav=(navigator.language||navigator.userLanguage||'pt').toLowerCase().slice(0,2);
+  var saved=localStorage.getItem('relabel_lang');
+  if(saved && LANGS[saved]) return saved;
+  if(LANGS[nav]) return nav;
+  if(nav==='pt') return 'pt';
+  if(nav==='es') return 'es';
+  return 'en';
+})();
+
+/* T(key, {vars}) — traduz e interpola {var} */
+function T(key, vars){
+  var s=(LANGS[currentLang]&&LANGS[currentLang][key]) || (LANGS['en']&&LANGS['en'][key]) || key;
+  if(vars) for(var k in vars) s=s.replace(new RegExp('{'+k+'}','g'),vars[k]);
+  return s;
+}
+
+/* aplica T() em todos os elementos com data-i18n="key" */
+function applyI18n(){
+  var els=document.querySelectorAll('[data-i18n]');
+  for(var i=0;i<els.length;i++){
+    var el=els[i], key=el.getAttribute('data-i18n');
+    var attr=el.getAttribute('data-i18n-attr');
+    if(attr){ el.setAttribute(attr, T(key)); }
+    else { el.innerHTML=T(key); }
+  }
+  /* atualiza os botões de idioma */
+  LANG_ORDER.forEach(function(l){
+    var btn=$('lang-'+l);
+    if(btn) btn.classList.toggle('on', l===currentLang);
+  });
+}
+
+function setLang(l){
+  if(!LANGS[l]) return;
+  currentLang=l;
+  localStorage.setItem('relabel_lang',l);
+  applyI18n();
+}
+
+function $(id){ return document.getElementById(id); }
+
+function showBoot(){
+  var msgs=[];
+  if(ENV.fileUrl){
+    msgs.push('<div class="alert warn" style="display:flex;flex-direction:column;gap:10px;">'+
+      '<div><b>⚠️ Arquivo aberto via file://</b><br>'+
+      '<span style="font-size:12px;">As funções de IA não funcionam neste modo. '+
+      'Publique no GitHub Pages para usar em qualquer dispositivo — é grátis e leva 1 minuto.</span></div>'+
+      '<button onclick="showDeployModal()" style="background:var(--acc);color:#fff;border:none;border-radius:8px;'+
+      'padding:11px;font-size:13px;font-weight:800;cursor:pointer;width:100%;">'+
+      '🚀 Publicar no GitHub Pages</button>'+
+      '</div>');
+  }
+  /* MiniZip sempre disponivel — sem aviso de fflate */
+  /* mostra URL do deploy anterior se existir */
+  var deployUrl=localStorage.getItem('relabel_deploy_url');
+  if(deployUrl && !ENV.fileUrl){
+    msgs.unshift('<div class="alert ok" style="font-size:12px;">🌐 App publicado em: '+
+      '<a href="'+deployUrl+'" target="_blank" style="color:var(--ok);">'+deployUrl+'</a></div>');
+  }
+  if(msgs.length) $('bootMsg').innerHTML=msgs.join('');
+}
+
+/* ============================================================
+   1. CAMADA DE DADOS — trocar por API em producao
+   ============================================================ */
+var Store = {
+  saveBatch:function(po,boxes){
+    var all=this._all();
+    all[po]={po:po,boxes:boxes,savedAt:new Date().toISOString()};
+    localStorage.setItem('relabel_batches',JSON.stringify(all));
+  },
+  _all:function(){
+    try{ return JSON.parse(localStorage.getItem('relabel_batches')||'{}'); }
+    catch(e){ return {}; }
+  },
+  listBatches:function(){
+    var a=this._all(),o=[]; for(var k in a){ if(a.hasOwnProperty(k)) o.push(a[k]); } return o;
+  },
+  getBatch:function(po){ return this._all()[po]||null; },
+  deleteBatch:function(po){
+    var all=this._all(); delete all[po];
+    localStorage.setItem('relabel_batches',JSON.stringify(all));
+  },
+  /* perfis de fornecedores */
+  _suppliers:function(){
+    try{ return JSON.parse(localStorage.getItem('relabel_suppliers')||'[]'); }
+    catch(e){ return []; }
+  },
+  saveSupplier:function(profile){
+    var list=this._suppliers();
+    var idx=-1;
+    for(var i=0;i<list.length;i++){ if(list[i].name===profile.name){ idx=i; break; } }
+    if(idx>=0) list[idx]=profile; else list.push(profile);
+    localStorage.setItem('relabel_suppliers',JSON.stringify(list));
+  },
+  listSuppliers:function(){ return this._suppliers(); },
+  deleteSupplier:function(name){
+    var list=this._suppliers().filter(function(s){ return s.name!==name; });
+    localStorage.setItem('relabel_suppliers',JSON.stringify(list));
+  },
+  getSupplierForPo:function(po){
+    var list=this._suppliers();
+    if(!list.length) return null;
+    for(var i=0;i<list.length;i++){
+      if(po && list[i].name){
+        var key=list[i].name.toUpperCase().split(' ')[0];
+        if(po.toUpperCase().indexOf(key)>=0) return list[i];
+      }
+    }
+    return list.length===1 ? list[0] : null;
+  }
+};
+
+/* ============================================================
+   2. PARSER DE XLSX — robusto, sem a biblioteca XLSX.
+      Usa fflate para descompactar e lê os XML internos.
+      Melhorias v2:
+        - Suporte a namespaces XML (mc:, x:, etc.)
+        - Decodificação UTF-8 com fallback latin-1
+        - Busca de planilha por workbook.xml.rels (ordem correta)
+        - Cabeçalho: busca nas primeiras 20 linhas, não apenas 8
+        - Normalização de nomes de coluna: remove acentos, espaços extras
+        - Datas seriais do Excel convertidas para DD/MM/YYYY
+        - Diagnóstico detalhado no handleFile
+   ============================================================ */
+
+/* -- Utilidades XML ----------------------------------------- */
+function xmlText(s){
+  return String(s)
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+    .replace(/&#x([0-9a-fA-F]+);/g,function(_,h){return String.fromCharCode(parseInt(h,16));})
+    .replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(+n);})
+    .replace(/&amp;/g,'&');
+}
+
+/* remove tags XML, colapsa espaços */
+function stripTags(s){ return xmlText(String(s).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()); }
+
+/* converte letra(s) de coluna -> índice 0-based */
+function colLetter(ref){ return (ref.match(/^[A-Z]+/)||[''])[0]; }
+function colIndex(letters){
+  if(!letters) return 0;
+  var n=0;
+  for(var i=0;i<letters.length;i++){ n=n*26+(letters.charCodeAt(i)-64); }
+  return n-1;
+}
+
+/* normaliza nome de coluna: minúsculas, sem acentos, sem espaço duplo */
+function normCol(s){
+  return String(s).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // remove diacríticos
+    .replace(/\s+/g,' ').trim();
+}
+
+/* data serial do Excel (número inteiro) -> "DD/MM/YYYY"
+   O Excel usa epoch 1900-01-00 (bug histórico: conta 1900 como bissexto) */
+function excelDateToStr(serial){
+  var n=parseInt(serial,10);
+  if(isNaN(n)||n<1) return String(serial);
+  // corrige o bug do Lotus 1-2-3: serial>=60 precisa -1
+  var epoch = new Date(1899,11,30);
+  var d=new Date(epoch.getTime()+(n>59?n-1:n)*86400000);
+  if(isNaN(d.getTime())) return String(serial);
+  var dd=('0'+d.getDate()).slice(-2);
+  var mm=('0'+(d.getMonth()+1)).slice(-2);
+  var yyyy=d.getFullYear();
+  return dd+'/'+mm+'/'+yyyy;
+}
+
+/* -- Decodificador com fallback ----------------------------- */
+function safeDecode(bytes){
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(bytes); }
+  catch(e){
+    try{ return new TextDecoder('windows-1252').decode(bytes); }
+    catch(e2){ return new TextDecoder('utf-8',{fatal:false}).decode(bytes); }
+  }
+}
+
+/* -- Parser principal --------------------------------------- */
+function parseXlsx(arrayBuffer){
+  /* ENV.fflate sempre true (MiniZip embutido) — linha mantida por segurança */
+  if(!ENV.fflate) throw new Error('Módulo de leitura ZIP não inicializou. Recarregue a página.');
+
+  var raw;
+  try{ raw=fflate.unzipSync(new Uint8Array(arrayBuffer)); }
+  catch(e){ throw new Error('O arquivo não é um .xlsx válido (falha ao descompactar). Salve novamente como Excel (.xlsx) no Excel ou LibreOffice.'); }
+
+  /* normaliza as chaves do zip — alguns geradores usam barras invertidas */
+  var files={};
+  for(var fk in raw){
+    if(raw.hasOwnProperty(fk)){
+      files[fk.replace(/\\/g,'/')]=raw[fk];
+    }
+  }
+
+  /* ---- shared strings ---- */
+  var shared=[];
+  var ssKey=Object.keys(files).filter(function(k){ return /sharedstrings\.xml$/i.test(k); })[0];
+  if(ssKey){
+    var ss=safeDecode(files[ssKey]);
+    /* divide por <si> tolerando namespace (x:si, etc.) */
+    var siParts=ss.split(/<(?:\w+:)?si[ >]/).slice(1);
+    for(var i=0;i<siParts.length;i++){
+      shared.push(stripTags(siParts[i].split(/<\/(?:\w+:)?si>/)[0]||''));
+    }
+  }
+
+  /* ---- número de formatos (para detectar células de data) ---- */
+  var dateFmtIds={};
+  var stylesKey=Object.keys(files).filter(function(k){ return /styles\.xml$/i.test(k); })[0];
+  if(stylesKey){
+    var stylesXml=safeDecode(files[stylesKey]);
+    /* formatos customizados */
+    var customFmts={};
+    var cfMatch=stylesXml.match(/<(?:\w+:)?numFmt[^>]+numFmtId="(\d+)"[^>]+formatCode="([^"]+)"/g)||[];
+    cfMatch.forEach(function(m){
+      var id=(m.match(/numFmtId="(\d+)"/)||[])[1];
+      var code=(m.match(/formatCode="([^"]+)"/)||[])[1]||'';
+      if(id && /[ymd]/i.test(code) && !/[hms]/i.test(code)) customFmts[id]=true;
+    });
+    /* xf (cell formats) */
+    var xfSection=stylesXml.match(/<(?:\w+:)?cellXfs[\s\S]*?<\/(?:\w+:)?cellXfs>/);
+    if(xfSection){
+      var xfs=xfSection[0].match(/<(?:\w+:)?xf[^>]*>/g)||[];
+      xfs.forEach(function(xf,idx){
+        var nfi=(xf.match(/numFmtId="(\d+)"/)||[])[1]||'0';
+        var n=parseInt(nfi,10);
+        /* IDs 14-17 = datas padrão do Excel */
+        if((n>=14&&n<=17)||customFmts[nfi]) dateFmtIds[idx]=true;
+      });
+    }
+  }
+
+  /* ---- descobre qual sheet abrir (pela ordem do workbook) ---- */
+  var sheetPath=null;
+
+  /* tenta via workbook.xml.rels */
+  var relsKey=Object.keys(files).filter(function(k){ return /xl\/_rels\/workbook\.xml\.rels$/i.test(k); })[0];
+  if(relsKey){
+    var relsXml=safeDecode(files[relsKey]);
+    var relMatches=relsXml.match(/<Relationship[^>]+Type="[^"]*\/worksheet"[^>]+Target="([^"]+)"/)||
+                   relsXml.match(/<Relationship[^>]+Target="([^"]+)"[^>]+Type="[^"]*\/worksheet"/);
+    if(relMatches){
+      var target=relMatches[1].replace(/\\/g,'/');
+      sheetPath=(/^xl\//.test(target)?'':('xl/'))+target;
+    }
+  }
+
+  /* fallback: primeira sheet encontrada */
+  if(!sheetPath||!files[sheetPath]){
+    var candidates=Object.keys(files).filter(function(k){ return /xl\/worksheets\/[^/]+\.xml$/i.test(k); });
+    candidates.sort(); /* sheet1, sheet2... */
+    sheetPath=candidates[0]||null;
+  }
+
+  if(!sheetPath||!files[sheetPath]){
+    throw new Error('Planilha não encontrada no arquivo. Arquivos com apenas abas protegidas ou sem worksheets não são suportados.');
+  }
+
+  var sheetXml=safeDecode(files[sheetPath]);
+
+  /* ---- lê as linhas ---- */
+  /* divide por <row> tolerando namespace e atributos */
+  var rowsRaw=sheetXml.split(/<(?:\w+:)?row[ >]/).slice(1);
+  var grid=[];
+
+  for(var r=0;r<rowsRaw.length;r++){
+    var rowXml=rowsRaw[r];
+    /* captura células: <c ...> ... </c> ou <c ... /> */
+    var cells=rowXml.match(/<(?:\w+:)?c[ >][\s\S]*?(?:\/>|<\/(?:\w+:)?c>)/g)||[];
+    var rowArr=[];
+
+    for(var c=0;c<cells.length;c++){
+      var cell=cells[c];
+      var ref=(cell.match(/\br="([A-Z]+\d+)"/)||[])[1]||'';
+      var type=(cell.match(/\bt="([^"]+)"/)||[])[1]||'';
+      var sIdx=(cell.match(/\bs="(\d+)"/)||[])[1];  /* índice de estilo */
+
+      /* valor: <v> ou inline string <is><t> */
+      var vm=cell.match(/<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/);
+      var isM=cell.match(/<(?:\w+:)?is>([\s\S]*?)<\/(?:\w+:)?is>/);
+
+      var val='';
+      if(isM){
+        val=stripTags(isM[1]);
+      } else if(vm){
+        var raw2=xmlText(vm[1]);
+        if(type==='s'){
+          /* shared string */
+          val=shared[parseInt(raw2,10)]||'';
+        } else if(type==='b'){
+          val=raw2==='1'?'SIM':'NÃO';
+        } else if(type==='str'||type==='inlineStr'){
+          val=raw2;
+        } else {
+          /* numérico — verifica se é data pelo estilo */
+          if(sIdx!==undefined && dateFmtIds[parseInt(sIdx,10)] && /^\d+(\.\d+)?$/.test(raw2)){
+            val=excelDateToStr(raw2);
+          } else {
+            val=raw2;
+          }
+        }
+      }
+
+      var ci=ref ? colIndex(colLetter(ref)) : rowArr.length;
+      rowArr[ci]=val;
+    }
+
+    /* preenche buracos (células vazias no meio) */
+    for(var k=0;k<rowArr.length;k++){ if(rowArr[k]===undefined) rowArr[k]=''; }
+    grid.push(rowArr);
+  }
+
+  return grid;
+}
+
+/* -- Diagnóstico de cabeçalho ------------------------------- */
+/* Retorna objeto {hRow, col, colEtiqueta, warnings[]} ou lança se não achar */
+/* normaliza uma célula para comparação de cabeçalho:
+   minúscula + sem acento + pontuação/símbolos viram espaço + colapsa espaços */
+/* ── shared API helper ────────────────────────────────────────
+   Centraliza o fetch para a API Anthropic com todos os headers
+   obrigatórios e tratamento de erro consistente.
+   Retorna Promise<{content:[{text}]}> ou lança Error.
+   ──────────────────────────────────────────────────────────── */
+function apiFetch(messages, maxTokens){
+  /* valida que não há valores undefined/null nos campos críticos das mensagens */
+  try{
+    var check=JSON.stringify(messages);
+    if(check.indexOf('"data":null')>=0 || check.indexOf('"data":""')>=0){
+      return Promise.reject(new Error('Imagem não carregada. Selecione o arquivo novamente antes de analisar.'));
+    }
+  }catch(e){
+    return Promise.reject(new Error('Erro ao preparar payload: '+e.message));
+  }
+
+  var body;
+  try{
+    body=JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:maxTokens||500,
+      messages:messages
+    });
+  }catch(e){
+    return Promise.reject(new Error('Erro ao serializar: '+e.message));
+  }
+
+  return fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:body
+  })
+  .then(function(res){
+    if(!res.ok){
+      return res.text().then(function(t){
+        /* tenta parsear o erro da API para mensagem mais clara */
+        try{
+          var e=JSON.parse(t);
+          throw new Error(e.error&&e.error.message ? e.error.message : t.slice(0,300));
+        }catch(pe){
+          throw new Error('HTTP '+res.status+': '+t.slice(0,200));
+        }
+      });
+    }
+    return res.json();
+  })
+  .then(function(data){
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    return data;
+  })
+  .catch(function(err){
+    /* "The string did not match the expected pattern" é CORS ou fetch bloqueado.
+       Transforma em mensagem mais útil. */
+    var msg=err.message||String(err);
+    if(msg.indexOf('string did not match')>=0 || msg.indexOf('Failed to fetch')>=0 || msg.indexOf('NetworkError')>=0){
+      throw new Error('Erro de conexão com a API. Verifique se o arquivo está sendo servido por HTTP (não file://) e se há conexão com a internet.');
+    }
+    throw err;
+  });
+}
+
+/* ============================================================
+   2b. AI COLUMN MAPPER — usa Claude para identificar colunas do batch
+       Substitui o findHeader baseado em palavras-chave por análise semântica.
+   ============================================================ */
+
+/* Campos que queremos mapear e seus nomes canônicos internos */
+var FIELD_DEFS=[
+  {key:'box',      required:true},
+  {key:'product',  required:false},
+  {key:'lot',      required:false},
+  {key:'prod_date',required:false},
+  {key:'exp_date', required:false},
+  {key:'net',      required:false},
+  {key:'gross',    required:false},
+  {key:'remito',   required:false},
+  {key:'state',    required:false}
+];
+
+var pendingMapping=null;  /* {colNames, mapping, rows} aguardando confirmação */
+
+/* Extrai os nomes das colunas e uma amostra de dados do xlsx */
+function extractSample(rows){
+  /* encontra a linha de cabeçalho: primeira linha com ≥3 células não-numéricas */
+  var hRow=0;
+  for(var i=0;i<Math.min(rows.length,60);i++){
+    var nonNum=rows[i].filter(function(c){
+      var s=String(c||'').trim();
+      return s.length>0 && isNaN(parseFloat(s));
+    });
+    if(nonNum.length>=2){ hRow=i; break; }
+  }
+  /* nomes das colunas */
+  var colNames=rows[hRow].map(function(c){ return String(c||'').trim(); });
+  /* até 5 linhas de amostra */
+  var sample=[];
+  for(var r=hRow+1;r<Math.min(rows.length,hRow+6);r++){
+    var row={};
+    colNames.forEach(function(name,ci){ if(name) row[name]=String(rows[r][ci]||'').trim(); });
+    if(Object.keys(row).some(function(k){ return row[k]; })) sample.push(row);
+  }
+  return {hRow:hRow, colNames:colNames, sample:sample};
+}
+
+/* Chama a IA para mapear as colunas. Retorna promise com o mapping {key:colName} */
+function aiMapColumns(colNames, sample){
+  var fieldList=FIELD_DEFS.map(function(f){
+    return '"'+f.key+'" ('+T('map.col.'+f.key)+')'+(f.required?' [REQUIRED]':'');
+  }).join(', ');
+
+  var prompt=[
+    'You are analyzing a spreadsheet batch report from a meat/food supplier.',
+    'The column headers are: '+JSON.stringify(colNames),
+    'Sample data (first rows): '+JSON.stringify(sample),
+    '',
+    'Map each of these fields to the most appropriate column name from the headers above:',
+    fieldList,
+    '',
+    'Rules:',
+    '- "box" MUST be the unique box/case/carton identifier number (never a product name or weight)',
+    '- Use null if no suitable column exists for a field',
+    '- Column names may be in Spanish, English, Portuguese, or mixed',
+    '- The box field is often called: Etiqueta, Carton, Case, Caja, Box, CTN, Bulto, N° Caja, Box ID, Case Number, etc.',
+    '',
+    'Respond ONLY with a JSON object mapping field keys to exact column names from the list, e.g.:',
+    '{"box":"Carton N°","product":"Nombre","lot":"Lote","prod_date":"Fecha Producción","exp_date":"Fecha Vencimiento","net":"Peso Neto","gross":"Peso Bruto","remito":"Numero Remito","state":"Estado"}'
+  ].join('\n');
+
+  return apiFetch([{role:'user', content:prompt}], 300)
+  .then(function(data){
+    var raw=(data.content&&data.content[0]&&data.content[0].text)||'{}';
+    var clean=raw.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  });
+}
+
+/* Renderiza o painel de confirmação de mapeamento */
+function renderMapPanel(colNames, mapping){
+  var grid=$('mapGrid');
+  grid.innerHTML='';
+  FIELD_DEFS.forEach(function(f){
+    var div=document.createElement('div');
+    div.style.cssText='background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;';
+    var label=T('map.col.'+f.key);
+    var current=mapping[f.key]||'';
+    var opts='<option value="">'+T('map.none')+'</option>';
+    colNames.forEach(function(c){
+      if(!c) return;
+      var sel=(c===current)?'selected':'';
+      opts+='<option value="'+c.replace(/"/g,'&quot;')+'" '+sel+'>'+c+'</option>';
+    });
+    div.innerHTML=
+      '<div style="font-size:10px;font-weight:800;color:var(--mut);letter-spacing:.5px;text-transform:uppercase;">'+
+        label+(f.required?' <span style="color:var(--err)">*</span>':'')+
+      '</div>'+
+      '<select data-field="'+f.key+'" style="margin-top:5px;width:100%;background:var(--panel2);'+
+        'border:1px solid var(--line);border-radius:6px;padding:6px 8px;color:var(--ink);font-size:12px;">'+
+        opts+
+      '</select>';
+    grid.appendChild(div);
+  });
+  $('mapPanel').style.display='';
+}
+
+/* Lê o mapeamento atual do painel (após edição do usuário) */
+function readMapFromPanel(){
+  var m={};
+  var selects=$('mapGrid').querySelectorAll('select');
+  for(var i=0;i<selects.length;i++){
+    var s=selects[i];
+    if(s.value) m[s.getAttribute('data-field')]=s.value;
+  }
+  return m;
+}
+
+/* Converte as linhas do xlsx em objetos de caixa usando o mapeamento */
+function applyMapping(rows, hRow, colNames, mapping){
+  /* índice colName -> posição */
+  var colIdx={};
+  colNames.forEach(function(name,i){ if(name) colIdx[name]=i; });
+
+  function get(row, field){
+    var colName=mapping[field];
+    if(!colName || colIdx[colName]==null) return '';
+    return String(row[colIdx[colName]]||'').trim();
+  }
+
+  var out=[];
+  for(var k=hRow+1;k<rows.length;k++){
+    var row=rows[k];
+    var et=normEtiqueta(get(row,'box'));
+    if(!et) continue;
+    /* pula linhas que repetem o cabeçalho */
+    if(et===normEtiqueta(colNames[colIdx[mapping['box']]]||'')) continue;
+    out.push({
+      etiqueta : et,
+      nome     : get(row,'product'),
+      lote     : get(row,'lot'),
+      prod     : get(row,'prod_date'),
+      venc     : get(row,'exp_date'),
+      neto     : get(row,'net'),
+      bruto    : get(row,'gross'),
+      remito   : get(row,'remito'),
+      estado   : get(row,'state'),
+      codigo   : '', tropa:''
+    });
+  }
+  return out;
+}
+
+/* ============================================================
+   3. GS1-128 — gerador proprio de codigo de barras (SVG).
+      Codifica os Application Identifiers do padrao GS1:
+        (01) GTIN-14   — codigo do corte / cross-reference
+        (11) YYMMDD    — data de producao
+        (3202) NNNNNN  — peso liquido em kg, 2 casas decimais
+        (21) serial    — lote/serial unico por caixa
+      Sem biblioteca externa. Suporta FNC1 e troca Code C <-> B.
+   ============================================================ */
+var C128 = {
+  P:["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+     "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+     "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+     "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+     "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+     "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+     "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+     "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+     "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+     "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+     "114131","311141","411131","211412","211214","211232","2331112"],
+  CODEC:99, CODEB:100, STARTB:104, STARTC:105, STOP:106, FNC1:102,
+
+  /* converte a sequencia de simbolos -> SVG */
+  _render:function(codes,opts){
+    var unit=opts.unit||2, h=opts.height||62;
+    var widths='';
+    for(var i=0;i<codes.length;i++){ widths+=this.P[codes[i]]; }
+    var x=0, rects='', dark=true;
+    for(var j=0;j<widths.length;j++){
+      var w=parseInt(widths[j],10)*unit;
+      if(dark){ rects+='<rect x="'+x+'" y="0" width="'+w+'" height="'+h+'" fill="#000"/>'; }
+      x+=w; dark=!dark;
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+x+' '+h+'" '+
+           'width="100%" preserveAspectRatio="xMidYMid meet">'+rects+'</svg>';
+  },
+
+  _checksum:function(codes){
+    var sum=codes[0];
+    for(var i=1;i<codes.length;i++){ sum+=codes[i]*i; }
+    codes.push(sum%103);
+    codes.push(this.STOP);
+    return codes;
+  },
+
+  /* GS1-128 a partir dos campos.
+     fields = {gtin, prodDate(YYMMDD), netW6, lote, serial}
+     Estrutura: (01)(11)(3202) fixos numericos, depois (10) lote e
+     (21) serial — ambos de tamanho variavel. Entre um campo de
+     tamanho variavel e o proximo AI vai um FNC1 separador. */
+  gs1:function(f){
+    var codes=[this.STARTC, this.FNC1];   // START-C + FNC1 -> declara GS1
+    var mode='C';                          // estado atual: Code C ou B
+
+    // helpers que respeitam o modo atual ----------------------------
+    function pushNum(self,str){            // emite digitos em Code C
+      if(mode!=='C'){ codes.push(self.CODEC); mode='C'; }
+      var s=str;
+      if(s.length%2===1){                  // digito impar: ultimo vai em B
+        for(var i=0;i<s.length-1;i+=2){ codes.push(parseInt(s.substr(i,2),10)); }
+        codes.push(self.CODEB); mode='B';
+        codes.push(s.charCodeAt(s.length-1)-32);
+      } else {
+        for(var j=0;j<s.length;j+=2){ codes.push(parseInt(s.substr(j,2),10)); }
+      }
+    }
+    function pushAlnum(self,str){           // emite texto em Code B
+      if(mode!=='B'){ codes.push(self.CODEB); mode='B'; }
+      for(var i=0;i<str.length;i++){ codes.push(str.charCodeAt(i)-32); }
+    }
+    function emit(self,str){
+      if(/^\d+$/.test(str)) pushNum(self,str); else pushAlnum(self,str);
+    }
+
+    // (01)(11)(3202) — campos fixos, tudo numerico, sem separador entre eles
+    emit(this, '01'+f.gtin+'11'+f.prodDate+'3202'+f.netW6);
+
+    // (10) lote — tamanho variavel. AI 10 + valor.
+    if(f.lote){
+      emit(this, '10'+String(f.lote));
+      codes.push(this.FNC1);               // separador: (10) tem tamanho variavel
+    }
+    // (21) serial — ultimo campo. Sem FNC1 final (e o ultimo).
+    emit(this, '21'+String(f.serial));
+
+    return this._checksum(codes);
+  },
+
+  /* SVG do GS1-128 */
+  gs1SVG:function(f,opts){
+    return this._render(this.gs1(f),opts||{});
+  },
+
+  /* texto legivel por humano (HRI) impresso abaixo das barras */
+  hri:function(f){
+    var s='(01)'+f.gtin+' (11)'+f.prodDate+' (3202)'+f.netW6;
+    if(f.lote) s+=' (10)'+f.lote;
+    s+=' (21)'+f.serial;
+    return s;
+  }
+};
+
+/* ---- helpers de montagem dos campos GS1 ---- */
+/* data DD/MM/YYYY  ->  YYMMDD */
+function toYYMMDD(d){
+  if(!d) return '000000';
+  var m=String(d).match(/(\d{1,2})\D(\d{1,2})\D(\d{2,4})/);
+  if(!m) return '000000';
+  var dd=('0'+m[1]).slice(-2), mm=('0'+m[2]).slice(-2), yy=m[3].slice(-2);
+  return yy+mm+dd;
+}
+/* peso kg -> 6 digitos com 2 casas decimais (AI 3202) */
+function toNetW6(kg){
+  var n=parseFloat(kg);
+  if(isNaN(n)) n=0;
+  return ('000000'+Math.round(n*100)).slice(-6);
+}
+
+
+/* ============================================================
+   4. NAVEGACAO ENTRE OS DOIS APPS
+   ============================================================ */
+function setMode(m){
+  ['web','cfg','mob'].forEach(function(k){
+    $('m-'+k).classList.toggle('on',m===k);
+  });
+  $('view-web').classList.toggle('on',m==='web');
+  $('view-cfg').classList.toggle('on',m==='cfg');
+  $('view-mob').classList.toggle('on',m==='mob');
+  var tag=$('roleTag');
+  if(m==='web'){ tag.className='role web'; tag.setAttribute('data-i18n','role.web'); tag.textContent=T('role.web'); refreshPoList(); }
+  else if(m==='cfg'){ tag.className='role web'; tag.setAttribute('data-i18n','role.cfg'); tag.textContent=T('role.cfg'); refreshSupplierList(); }
+  else { tag.className='role mob'; tag.setAttribute('data-i18n','role.mob'); tag.textContent=T('role.mob'); stopScanner(); buildMobPoList(); showMob('ms-po'); }
+}
+
+/* ============================================================
+   5. PLATAFORMA WEB
+   ============================================================ */
+var parsedRows=null;   /* raw rows do xlsx */
+var parsedSample=null; /* {hRow, colNames, sample} */
+var parsedBoxes=null;  /* boxes confirmados */
+
+function handleFile(file){
+  if(!/\.xlsx$/i.test(file.name)){
+    $('webMsg').innerHTML='<div class="alert err">'+T('err.xlsx_format')+'</div>';
+    return;
+  }
+  $('fname').textContent='⏳ '+file.name+'…';
+  $('webMsg').innerHTML='';
+  $('mapPanel').style.display='none';
+  parsedBoxes=null; parsedRows=null; parsedSample=null;
+  validateWeb();
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      parsedRows=parseXlsx(ev.target.result);
+      parsedSample=extractSample(parsedRows);
+      $('fname').textContent='📄 '+file.name;
+      $('dropZone').classList.add('has');
+      $('webMsg').innerHTML='<div class="alert ok">✅ '+
+        T('web.file.drop')+' — '+parsedSample.colNames.filter(function(c){return c;}).length+
+        ' colunas, '+parsedSample.sample.length+' linhas de amostra.<br>'+
+        '<span style="font-size:11px;">Clique em Analisar para mapear as colunas com IA.</span></div>';
+    }catch(err){
+      $('webMsg').innerHTML='<div class="alert err">'+T('err.xlsx_read',{msg:err.message})+'</div>';
+      $('fname').textContent='⚠️ '+file.name;
+      console.error('[ReLabel] parseXlsx error:', err);
+    }
+    validateWeb();
+  };
+  reader.onerror=function(){ $('webMsg').innerHTML='<div class="alert err">'+T('err.xlsx_read',{msg:'FileReader error'})+'</div>'; };
+  reader.readAsArrayBuffer(file);
+}
+
+function validateWeb(){
+  var po=$('poInput').value.trim();
+  $('btnAnalyze').disabled=!(po && parsedRows);
+  $('btnSave').disabled=!(po && parsedBoxes && parsedBoxes.length);
+}
+
+function analyzeColumns(){
+  if(!parsedRows||!parsedSample) return;
+  $('btnAnalyze').disabled=true;
+  $('mapPanel').style.display='none';
+  $('webMsg').innerHTML='<div class="ai-thinking"><div class="spin"></div><span>'+T('mob.scan.ai')+'</span></div>';
+
+  aiMapColumns(parsedSample.colNames, parsedSample.sample)
+  .then(function(mapping){
+    $('webMsg').innerHTML='';
+    pendingMapping={mapping:mapping, rows:parsedRows, sample:parsedSample};
+    renderMapPanel(parsedSample.colNames, mapping);
+    $('btnAnalyze').disabled=false;
+  })
+  .catch(function(err){
+    $('webMsg').innerHTML='<div class="alert err">'+T('err.ai_fetch',{msg:err.message})+'</div>';
+    $('btnAnalyze').disabled=false;
+  });
+}
+
+function confirmMapping(){
+  if(!pendingMapping) return;
+  var mapping=readMapFromPanel();
+  if(!mapping.box){
+    $('mapMsg').innerHTML='<div class="alert err">'+T('map.col.box')+' é obrigatório.</div>';
+    return;
+  }
+  var s=pendingMapping.sample;
+  var boxes=applyMapping(pendingMapping.rows, s.hRow, s.colNames, mapping);
+  if(!boxes.length){
+    $('mapMsg').innerHTML='<div class="alert err">'+T('err.no_boxes')+'</div>';
+    return;
+  }
+  parsedBoxes=boxes;
+  /* mostra amostra */
+  var preview=boxes.slice(0,5).map(function(b){
+    return '<code style="font-family:var(--mono);font-size:11px;">'+b.etiqueta+'</code>'+(b.nome?' — '+b.nome:'');
+  }).join('<br>');
+  $('mapMsg').innerHTML='<div class="alert ok">✅ <b>'+boxes.length+' '+T('web.batches.boxes')+'</b> mapeadas.<br>'+
+    '<span style="font-size:11px;">'+preview+'</span></div>';
+  validateWeb();
+}
+
+function refreshPoList(){
+  var list=$('poList');
+  var batches=Store.listBatches();
+  if(batches.length===0){ list.innerHTML='<div class="empty">'+T('web.batches.empty')+'</div>'; return; }
+  list.innerHTML='';
+  batches.forEach(function(b){
+    var po=b.po;
+    var d=new Date(b.savedAt);
+    var count=b.boxes?b.boxes.length:0;
+    var div=document.createElement('div');
+    div.className='porow'; div.style.flexWrap='wrap'; div.style.gap='8px';
+    div.innerHTML=
+      '<span class="pi">📦</span>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div class="pn">'+po+'</div>'+
+        '<div class="pm">'+count+' '+T('web.batches.boxes')+' · '+d.toLocaleDateString()+'</div>'+
+      '</div>'+
+      '<button class="del" data-po="'+po+'" title="'+T('web.delete.confirm')+'" style="font-size:20px;padding:4px 10px;">🗑️</button>';
+    div.querySelector('.del').addEventListener('click',function(e){
+      e.stopPropagation();
+      var btn=this, targetPo=btn.getAttribute('data-po');
+      btn.textContent=T('web.delete.confirm');
+      btn.style.cssText='color:var(--err);font-weight:800;font-size:11px;background:none;border:none;cursor:pointer;margin-left:auto;';
+      btn.addEventListener('click',function(){
+        Store.deleteBatch(targetPo); refreshPoList();
+      },{once:true});
+    });
+    list.appendChild(div);
+  });
+}
+
+/* ============================================================
+   6. APP CELULAR
+   ============================================================ */
+var mob={po:null,boxes:[],map:{},box:null,done:[]};
+var scanner=null;
+
+function showMob(scr){
+  var els=document.querySelectorAll('#view-mob .screen');
+  for(var i=0;i<els.length;i++){ els[i].classList.remove('on'); }
+  $(scr).classList.add('on');
+  window.scrollTo(0,0);
+}
+
+var allBatches=[];
+
+function buildMobPoList(){
+  allBatches=Store.listBatches();
+  var s=$('poSearch'); if(s) s.value='';
+  renderPoList(allBatches);
+}
+
+function filterPoList(query){
+  var q=String(query||'').toLowerCase().trim();
+  renderPoList(q ? allBatches.filter(function(b){ return b.po.toLowerCase().indexOf(q)>=0; }) : allBatches);
+}
+
+function renderPoList(batches){
+  var list=$('mobPoList');
+  if(batches.length===0){ list.innerHTML='<div class="alert info">'+T('mob.po.empty')+'</div>'; return; }
+  list.innerHTML='';
+  batches.forEach(function(b){
+    var div=document.createElement('div');
+    div.className='porow'; div.style.cursor='pointer';
+    var count=b.boxes?b.boxes.length:0;
+    var d=new Date(b.savedAt);
+    div.innerHTML=
+      '<span class="pi">📦</span>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div class="pn">'+b.po+'</div>'+
+        '<div class="pm">'+count+' '+T('web.batches.boxes')+' · '+d.toLocaleDateString()+'</div>'+
+      '</div>'+
+      '<span style="margin-left:auto;color:var(--mut);font-size:20px">›</span>';
+    div.onclick=function(){ selectMobPo(b.po); };
+    list.appendChild(div);
+  });
+}
+
+function selectMobPo(po){
+  var b=Store.getBatch(po);
+  if(!b) return;
+  mob.po=po; mob.boxes=b.boxes; mob.done=[]; mob.map={};
+  b.boxes.forEach(function(x){
+    var key=normEtiqueta(String(x.etiqueta));
+    mob.map[key]=x;
+  });
+  $('scanPoName').textContent=po;
+  $('statTotal').textContent=b.boxes.length;
+  $('statCount').textContent=0;
+  $('recentWrap').style.display='none';
+  $('recentList').innerHTML='';
+  $('scanMsg').innerHTML='';
+  $('manualInput').value='';
+  showMob('ms-scan');
+  resetCamUI();
+}
+
+/* ============================================================
+   CÂMERA + IA — tira foto do label e extrai o número via Claude Vision
+   ============================================================ */
+var camStream=null;
+
+function startScanner(){
+  /* compatibilidade: chamado em vários lugares; apenas reseta a UI */
+  resetCamUI();
+}
+
+function stopScanner(cb){
+  stopCam();
+  if(cb) cb();
+}
+
+function resetCamUI(){
+  $('camPlaceholder').style.display='flex';
+  $('camVideo').style.display='none';
+  $('photoPreview').style.display='none';
+  $('btnOpenCam').style.display='';
+  $('btnSnap').style.display='none';
+  $('btnRetake').style.display='none';
+  $('aiStatus').style.display='none';
+  $('scanMsg').innerHTML='';
+}
+
+function stopCam(){
+  if(camStream){
+    camStream.getTracks().forEach(function(t){ t.stop(); });
+    camStream=null;
+  }
+  var v=$('camVideo');
+  v.srcObject=null;
+  v.style.display='none';
+  $('camPlaceholder').style.display='flex';
+  $('btnSnap').style.display='none';
+  $('btnOpenCam').style.display='';
+}
+
+function openCam(){
+  $('scanMsg').innerHTML='';
+  $('aiStatus').style.display='none';
+  $('photoPreview').style.display='none';
+  $('btnRetake').style.display='none';
+  $('btnOpenCam').style.display='none';
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    $('scanMsg').innerHTML='<div class="alert err">❌ Câmera não suportada neste navegador. Use a digitação manual.</div>';
+    $('btnOpenCam').style.display='';
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:960}}
+  }).then(function(stream){
+    camStream=stream;
+    var v=$('camVideo');
+    v.srcObject=stream;
+    v.style.display='block';
+    $('camPlaceholder').style.display='none';
+    $('btnSnap').style.display='';
+  }).catch(function(err){
+    $('scanMsg').innerHTML='<div class="alert err">❌ Não foi possível abrir a câmera: '+err.message+'<br>Use a digitação manual abaixo.</div>';
+    $('btnOpenCam').style.display='';
+  });
+}
+
+function snapPhoto(){
+  var v=$('camVideo');
+  var canvas=$('camCanvas');
+  canvas.width=v.videoWidth||640;
+  canvas.height=v.videoHeight||480;
+  canvas.getContext('2d').drawImage(v,0,0);
+
+  /* mostra preview */
+  var dataUrl=canvas.toDataURL('image/jpeg',0.85);
+  $('photoPreview').src=dataUrl;
+  $('photoPreview').style.display='block';
+  v.style.display='none';
+  $('btnSnap').style.display='none';
+  $('btnRetake').style.display='';
+
+  /* para o stream */
+  stopCam();
+
+  /* extrai base64 puro (sem o prefixo data:...) */
+  var b64=dataUrl.split(',')[1];
+  analyzeWithAI(b64);
+}
+
+function analyzeWithAI(b64){
+  $('aiStatus').style.display='';
+  $('aiStatusText').textContent=T('mob.scan.ai');
+  $('scanMsg').innerHTML='';
+
+  /* monta contexto: perfil do fornecedor + etiquetas conhecidas */
+  var supplier=Store.getSupplierForPo(mob.po);
+  var supplierCtx='';
+  if(supplier){
+    supplierCtx='\n\nPerfil do fornecedor configurado:\n'+
+      '- Fornecedor: '+supplier.name+'\n'+
+      '- O campo com o número da caixa se chama "'+supplier.fieldName+'"\n'+
+      '- Localização no label: '+supplier.fieldDesc;
+  }
+  var knownCodes=Object.keys(mob.map).slice(0,30).join(', ');
+  var knownCtx=knownCodes ? '\n\nEtiquetas registradas nesta PO (para referência): '+knownCodes : '';
+
+  var camMsgContent=[
+    {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}},
+    {type:'text', text:'Esta e uma foto de um label/etiqueta de caixa frigorifica. '+
+      'Identifique o numero da etiqueta/box ID impresso no label. '+
+      'Geralmente e um numero, pode aparecer como ETIQUETA, BOX ID, ET, CARTON, CASE ou similar. '+
+      'Se houver codigo de barras, leia o numero abaixo dele. '+
+      'Responda APENAS com o numero, sem texto, sem espacos, sem pontuacao.'+
+      supplierCtx+knownCtx}
+  ];
+  apiFetch([{role:'user', content:camMsgContent}], 200)
+  .then(function(data){
+    $('aiStatus').style.display='none';
+    if(data.error){
+      $('scanMsg').innerHTML='<div class="alert err">❌ Erro da IA: '+data.error.message+'</div>';
+      return;
+    }
+    var raw=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var m=raw.match(/\d+/);
+    var code=m?m[0]:raw.replace(/\D/g,'').trim();
+    if(!code){
+      $('scanMsg').innerHTML='<div class="alert warn">⚠️ Não foi possível identificar o número na imagem. Tente outra foto ou use a digitação manual.<br><small>IA respondeu: '+raw+'</small></div>';
+      return;
+    }
+    /* destaca o código encontrado antes de buscar */
+    $('aiStatusText').textContent='✓ Código identificado: '+code;
+    $('aiStatus').className='alert ok';
+    $('aiStatus').style.display='';
+    lookup(code);
+  })
+  .catch(function(err){
+    $('aiStatus').style.display='none';
+    $('scanMsg').innerHTML='<div class="alert err">❌ Erro ao chamar a IA: '+err.message+'<br>Verifique sua conexão ou use a digitação manual.</div>';
+  });
+}
+
+/* normaliza um código de etiqueta para comparação consistente:
+   - remove espaços e caracteres invisíveis
+   - remove .0 ou .00 de números vindos do Excel (ex: "411000277639.0" -> "411000277639")
+   - remove zeros à esquerda APENAS se o resultado for todo numérico */
+function normEtiqueta(s){
+  s=String(s).trim();
+  s=s.replace(/^'+/,'');        /* remove apóstrofo inicial do Excel (forçar texto) */
+  s=s.replace(/\.0+$/,'');     /* remove .0 do Excel (número float) */
+  return s.trim();
+}
+
+function lookup(code){
+  code=normEtiqueta(code);
+  var rec=mob.map[code];
+
+  /* fallback: busca ignorando zeros à esquerda (ex: "0411..." == "411...") */
+  if(!rec){
+    var codeNum=code.replace(/^0+/,'');
+    for(var k in mob.map){
+      if(mob.map.hasOwnProperty(k) && k.replace(/^0+/,'')=== codeNum){
+        rec=mob.map[k]; code=k; break;
+      }
+    }
+  }
+
+  if(!rec){
+    /* diagnóstico: mostra alguns exemplos do mapa para ajudar */
+    var examples=Object.keys(mob.map).slice(0,3).join(', ');
+    $('scanMsg').innerHTML='<div class="alert err">'+T('mob.not_found',{code:code,po:mob.po})+
+      '<br><span style="font-size:11px">'+T('mob.not_found_hint',{examples:examples})+'</span></div>';
+    return;
+  }
+  $('scanMsg').innerHTML='';
+  mob.box={code:code,rec:rec};
+  fillConfirm();
+  showMob('ms-confirm');
+}
+
+function num(v){ var n=parseFloat(v); return isNaN(n)?null:n; }
+
+function fillConfirm(){
+  var r=mob.box.rec;
+  $('cEt').textContent=mob.box.code;
+  $('cNome').textContent=r.nome||'—';
+  $('cEstado').textContent=(r.estado||'—').toUpperCase();
+  var b=num(r.bruto), n=num(r.neto);
+  $('cBruto').textContent=(b!=null?b.toFixed(2):'—')+' kg';
+  $('cNeto').textContent=(n!=null?n.toFixed(2):'—')+' kg';
+  $('cProd').textContent=r.prod||'—';
+  $('cVenc').textContent=r.venc||'—';
+  $('cLote').textContent=(r.lote||'—')+' / '+(r.tropa||'—');
+}
+/* GTIN-14 interno estavel gerado a partir do codigo/nome do produto */
+function normGTIN14(key){
+  var s=String(key||'SEM-CODIGO').toUpperCase();
+  var h=5381;
+  for(var i=0;i<s.length;i++){h=((h*33)^s.charCodeAt(i))>>>0;}
+  var body=('000000000000'+String(h)).slice(-12);
+  var d13='2'+body;
+  var sum=0;
+  for(var j=0;j<13;j++){var n=parseInt(d13.charAt(j),10)||0;sum+=(j%2===0)?n*3:n*1;}
+  return d13+String((10-(sum%10))%10);
+}
+function buildLabel(){
+  var r=mob.box.rec, code=mob.box.code;
+  var b=num(r.bruto), n=num(r.neto);
+  var gtin=normGTIN14(r.codigo || r.nome);
+  var f={
+    gtin:gtin,
+    prodDate:toYYMMDD(r.prod),
+    netW6:toNetW6(r.neto),
+    lote:String(r.lote||''),
+    serial:code
+  };
+  var svg='';
+  try{ svg=C128.gs1SVG(f,{unit:2,height:62}); }
+  catch(e){ svg='<div style="color:#900;font-size:11px">[erro ao gerar código]</div>'; }
+
+  $('lblContent').innerHTML=
+    '<div class="lbl-h">'+
+      '<div class="t1">'+(r.nome||'').replace(' (CAJA)','')+'</div>'+
+      '<div class="t2">'+(r.estado||'')+' · PO '+mob.po+'</div>'+
+    '</div>'+
+    '<div class="lbl-et">'+
+      '<div class="lab">ETIQUETA / BOX ID</div>'+
+      '<div class="num">'+code+'</div>'+
+    '</div>'+
+    '<div class="lbl-grid">'+
+      '<div class="c"><span>P.BRUTO</span><b>'+(b!=null?b.toFixed(2):'-')+' kg</b></div>'+
+      '<div class="c"><span>P.LIQ</span><b>'+(n!=null?n.toFixed(2):'-')+' kg</b></div>'+
+      '<div class="c"><span>PROD</span><b>'+(r.prod||'-')+'</b></div>'+
+      '<div class="c"><span>VAL</span><b>'+(r.venc||'-')+'</b></div>'+
+      '<div class="c"><span>LOTE</span><b>'+(r.lote||'-')+'</b></div>'+
+      '<div class="c"><span>TROPA</span><b>'+(r.tropa||'-')+'</b></div>'+
+    '</div>'+
+    '<div class="lbl-bc">'+svg+
+      '<div class="bctext">'+C128.hri(f)+'</div>'+
+    '</div>'+
+    '<div class="lbl-foot">GS1-128 · REMITO '+(r.remito||'')+' · gerado por ReLabel</div>';
+
+  $('lblWarn').innerHTML='';
+}
+
+function addRecent(){
+  mob.done.unshift({code:mob.box.code,t:new Date()});
+  $('recentWrap').style.display='block';
+  $('statCount').textContent=mob.done.length;
+  var list=$('recentList'); list.innerHTML='';
+  mob.done.slice(0,10).forEach(function(d){
+    var div=document.createElement('div');
+    div.className='recent-item';
+    div.innerHTML='<span class="re">✓ '+d.code+'</span><span class="rt">'+d.t.toTimeString().slice(0,5)+'</span>';
+    list.appendChild(div);
+  });
+}
+
+/* ============================================================
+   6b. PARAMETRIZAÇÃO — análise de label por IA
+   ============================================================ */
+var cfgImageB64=null;
+
+var cfgMediaType='image/jpeg'; /* updated per file */
+
+function getMediaType(file){
+  /* derive the correct MIME type from file.type or extension */
+  var t=(file.type||'').toLowerCase();
+  if(t==='image/png')  return 'image/png';
+  if(t==='image/webp') return 'image/webp';
+  if(t==='image/gif')  return 'image/gif';
+  if(t==='image/jpeg'||t==='image/jpg') return 'image/jpeg';
+  if(t==='application/pdf') return 'application/pdf';
+  /* fallback: guess from extension */
+  var ext=(file.name||'').split('.').pop().toLowerCase();
+  if(ext==='png')  return 'image/png';
+  if(ext==='webp') return 'image/webp';
+  if(ext==='gif')  return 'image/gif';
+  if(ext==='pdf')  return 'application/pdf';
+  return 'image/jpeg';
+}
+
+function cfgHandleImage(file){
+  if(!file) return;
+  cfgMediaType=getMediaType(file);
+  var isPdf=cfgMediaType==='application/pdf';
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var dataUrl=ev.target.result;
+    cfgImageB64=dataUrl.split(',')[1];
+    /* show preview: image renders directly; PDF shows an icon */
+    if(isPdf){
+      $('cfgImgPreview').src='';
+      $('cfgImgPreview').style.display='none';
+      $('cfgImgWrap').innerHTML=
+        '<div style="padding:18px;background:var(--panel);border-radius:10px;border:1px solid var(--line);'+
+        'text-align:center;color:var(--mut);font-size:13px;">'+
+        '<div style="font-size:36px;">📄</div>'+
+        '<div style="font-weight:800;margin-top:6px;">'+file.name+'</div>'+
+        '<div style="font-size:11px;margin-top:4px;">PDF carregado — pronto para análise</div></div>';
+    } else {
+      $('cfgImgWrap').innerHTML='<img id="cfgImgPreview" style="width:100%;border-radius:10px;border:1px solid var(--line);" alt="preview">';
+      $('cfgImgPreview').src=dataUrl;
+    }
+    $('cfgImgWrap').style.display='';
+    $('cfgDrop').classList.add('has');
+    $('cfgFname').textContent=(isPdf?'📄':'📷')+' '+file.name;
+    $('cfgResult').style.display='none';
+    $('cfgBtnSave').style.display='none';
+    $('cfgMsg').innerHTML='';
+    validateCfgForm();
+  };
+  reader.readAsDataURL(file);
+}
+
+function validateCfgForm(){
+  var name=$('cfgSupplierName').value.trim();
+  $('cfgBtnAnalyze').disabled=!(name && cfgImageB64);
+}
+
+function cfgAnalyze(){
+  var name=$('cfgSupplierName').value.trim();
+  if(!name || !cfgImageB64){ return; }
+
+  $('cfgBtnAnalyze').disabled=true;
+  $('cfgResult').style.display='none';
+  $('cfgBtnSave').style.display='none';
+  $('cfgMsg').innerHTML='';
+  $('cfgAiStatus').style.display='';
+  $('cfgAiStatus').innerHTML='<div class="ai-thinking"><div class="spin"></div><span>IA analisando o layout do label…</span></div>';
+
+  var cfgPromptParts=[
+    'Esta e uma foto de um label do fornecedor '+name+'. ',
+    'Identifique: 1) O campo com o NUMERO UNICO DA CAIXA (Etiqueta, Box ID, Carton, Case, N Caja, etc). ',
+    '2) Onde ele fica no label. 3) O formato do valor. ',
+    'Responda APENAS em JSON: {"fieldName":"...","location":"...","format":"...","example":"...","confidence":"alta|media|baixa","notes":"..."}'
+  ];
+  apiFetch([{role:'user', content:[
+    {type:(cfgMediaType==='application/pdf'?'document':'image'),
+     source:{type:'base64', media_type:cfgMediaType, data:cfgImageB64}},
+    {type:'text', text:cfgPromptParts.join('')}
+  ]}], 400)
+  .then(function(data){
+    $('cfgAiStatus').style.display='none';
+    $('cfgBtnAnalyze').disabled=false;
+    if(!data){ $('cfgMsg').innerHTML='<div class="alert err">Resposta vazia da IA.</div>'; return; }
+    var raw=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var parsed;
+    try{
+      var clean=raw.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    } catch(e){
+      $('cfgMsg').innerHTML='<div class="alert err">❌ IA retornou resposta inesperada: '+raw+'</div>';
+      return;
+    }
+    /* preenche campos editáveis */
+    $('cfgFieldName').value=parsed.fieldName||'';
+    $('cfgFieldDesc').value=parsed.location||'';
+    /* monta card de resultado */
+    var confColor={'alta':'var(--ok)','media':'var(--acc2)','baixa':'var(--err)'}[parsed.confidence]||'var(--mut)';
+    $('cfgResultBox').innerHTML=
+      '<b>Campo:</b> <span class="field-tag">'+parsed.fieldName+'</span> &nbsp;'+
+      '<span style="font-size:11px;color:'+confColor+'">● confiança '+parsed.confidence+'</span><br>'+
+      '<b>Localização:</b> '+parsed.location+'<br>'+
+      '<b>Formato:</b> '+parsed.format+
+      (parsed.example?'<br><b>Exemplo:</b> <span style="font-family:var(--mono)">'+parsed.example+'</span>':'')+
+      (parsed.notes?'<br><span style="font-size:11px;color:var(--mut)">'+parsed.notes+'</span>':'');
+    $('cfgResult').style.display='';
+    $('cfgBtnSave').style.display='';
+  })
+  .catch(function(err){
+    $('cfgAiStatus').style.display='none';
+    $('cfgBtnAnalyze').disabled=false;
+    $('cfgMsg').innerHTML='<div class="alert err">❌ Erro ao chamar a IA: '+err.message+'</div>';
+  });
+}
+
+function cfgSave(){
+  var name=$('cfgSupplierName').value.trim();
+  var fieldName=$('cfgFieldName').value.trim();
+  var fieldDesc=$('cfgFieldDesc').value.trim();
+  if(!name||!fieldName){
+    $('cfgMsg').innerHTML='<div class="alert warn">Preencha o nome do fornecedor e o campo identificado.</div>';
+    return;
+  }
+  var profile={
+    name:name,
+    fieldName:fieldName,
+    fieldDesc:fieldDesc,
+    thumbB64:cfgImageB64 ? cfgImageB64.substring(0,200) : null, /* thumbnail compacto */
+    savedAt:new Date().toISOString()
+  };
+  Store.saveSupplier(profile);
+  $('cfgMsg').innerHTML='<div class="alert ok">✅ Perfil de <b>'+name+'</b> salvo com sucesso.</div>';
+  /* reset form */
+  $('cfgSupplierName').value='';
+  $('cfgFname').textContent='';
+  $('cfgDrop').classList.remove('has');
+  $('cfgImgWrap').style.display='none';
+  $('cfgResult').style.display='none';
+  $('cfgBtnSave').style.display='none';
+  $('cfgBtnAnalyze').disabled=true;
+  cfgImageB64=null;
+  refreshSupplierList();
+}
+
+function refreshSupplierList(){
+  var list=Store.listSuppliers();
+  var wrap=$('cfgSupplierListWrap');
+  var el=$('cfgSupplierList');
+  if(list.length===0){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  el.innerHTML='';
+  list.forEach(function(s){
+    var div=document.createElement('div');
+    div.className='supplier-card';
+    var d=new Date(s.savedAt);
+    div.innerHTML=
+      '<div class="supplier-card-head">'+
+        '<span style="font-size:18px">🏭</span>'+
+        '<div class="sname">'+s.name+'</div>'+
+        '<button class="sdel" title="Remover">✕</button>'+
+      '</div>'+
+      '<div class="supplier-card-body">'+
+        '<b>Campo do número de caixa:</b> <span class="field-tag" style="font-size:11px;">'+s.fieldName+'</span><br>'+
+        '<b>Localização:</b> '+s.fieldDesc+'<br>'+
+        '<span style="font-size:10px;">Cadastrado em '+d.toLocaleDateString('pt-BR')+' '+d.toTimeString().slice(0,5)+'</span>'+
+      '</div>';
+    div.querySelector('.sdel').onclick=function(){
+      if(confirm('Remover o perfil de '+s.name+'?')){ Store.deleteSupplier(s.name); refreshSupplierList(); }
+    };
+    el.appendChild(div);
+  });
+}
+
+/* ============================================================
+   GITHUB PAGES DEPLOY — publica o arquivo via GitHub API
+   ============================================================ */
+function showDeployModal(){
+  $('deployModal').style.display='flex';
+  $('deployStatus').style.display='none';
+  $('deployBtn').disabled=false;
+  $('deployBtn').textContent='🚀 Publicar agora';
+}
+function hideDeployModal(){
+  $('deployModal').style.display='none';
+}
+
+function setDeployStatus(html, type){
+  var el=$('deployStatus');
+  el.style.display='';
+  el.innerHTML='<div class="alert '+(type||'info')+'">'+html+'</div>';
+}
+
+function runDeploy(){
+  var token=($('deployToken').value||'').trim();
+  var repo=($('deployRepo').value||'relabel').trim().replace(/[^a-zA-Z0-9_-]/g,'-');
+  if(!token){ setDeployStatus('Cole o token do GitHub no campo acima.','warn'); return; }
+
+  $('deployBtn').disabled=true;
+  $('deployBtn').textContent='⏳ Publicando…';
+
+  /* pega o conteúdo do arquivo atual */
+  var html=document.documentElement.outerHTML;
+  var b64=btoa(unescape(encodeURIComponent(html)));
+
+  var headers={
+    'Authorization':'token '+token,
+    'Accept':'application/vnd.github.v3+json',
+    'Content-Type':'application/json'
+  };
+
+  /* 1. Pega usuário autenticado */
+  setDeployStatus('🔑 Verificando token…','info');
+  fetch('https://api.github.com/user',{headers:headers})
+  .then(function(r){ return r.json(); })
+  .then(function(user){
+    if(!user.login) throw new Error('Token inválido ou sem permissão.');
+    var owner=user.login;
+    setDeployStatus('👤 Usuário: <b>'+owner+'</b> — criando repositório…','info');
+
+    /* 2. Cria repositório (ignora erro 422 = já existe) */
+    return fetch('https://api.github.com/user/repos',{
+      method:'POST', headers:headers,
+      body:JSON.stringify({name:repo, auto_init:false, private:false,
+        description:'ReLabel — Sistema de Reetiquetagem'})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(){ return owner; });
+  })
+  .then(function(owner){
+    setDeployStatus('📄 Enviando arquivo…','info');
+
+    /* 3. Verifica se index.html já existe (para pegar o SHA) */
+    return fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/index.html',{headers:headers})
+    .then(function(r){ return r.status===200 ? r.json() : null; })
+    .then(function(existing){
+      var body={message:'Deploy ReLabel v3',content:b64,branch:'main'};
+      if(existing && existing.sha) body.sha=existing.sha;
+
+      return fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/index.html',{
+        method:'PUT', headers:headers, body:JSON.stringify(body)
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(){ return owner; });
+    });
+  })
+  .then(function(owner){
+    setDeployStatus('⚙️ Ativando GitHub Pages…','info');
+
+    /* 4. Ativa GitHub Pages na branch main */
+    return fetch('https://api.github.com/repos/'+owner+'/'+repo+'/pages',{
+      method:'POST', headers:headers,
+      body:JSON.stringify({source:{branch:'main',path:'/'}})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(){ return owner; })
+    .catch(function(){ return owner; }); /* Pages pode já estar ativo */
+  })
+  .then(function(owner){
+    var url='https://'+owner+'.github.io/'+repo+'/';
+    setDeployStatus(
+      '✅ <b>Publicado com sucesso!</b><br>'+
+      'Seu app estará disponível em:<br>'+
+      '<a href="'+url+'" target="_blank" style="color:var(--ok);font-family:var(--mono);font-size:13px;word-break:break-all;">'+url+'</a><br>'+
+      '<span style="font-size:11px;color:var(--mut);">⏱ Pode levar 1-2 minutos para o GitHub Pages ativar pela primeira vez.</span>',
+      'ok'
+    );
+    $('deployBtn').textContent='✅ Publicado!';
+    /* salva a URL para mostrar no boot */
+    localStorage.setItem('relabel_deploy_url', url);
+  })
+  .catch(function(err){
+    setDeployStatus('❌ Erro: '+err.message,'err');
+    $('deployBtn').disabled=false;
+    $('deployBtn').textContent='🚀 Tentar novamente';
+  });
+}
+
+/* ============================================================
+   7. LIGACAO DOS EVENTOS — depois do DOM pronto
+   ============================================================ */
+function bind(){
+  var ps=$('poSearch'); if(ps) ps.addEventListener('input',function(){ filterPoList(this.value); });
+  $('lang-pt').onclick=function(){ setLang('pt'); };
+  $('lang-es').onclick=function(){ setLang('es'); };
+  $('lang-en').onclick=function(){ setLang('en'); };
+  $('m-web').onclick=function(){ setMode('web'); };
+  $('m-cfg').onclick=function(){ setMode('cfg'); };
+  $('m-mob').onclick=function(){ setMode('mob'); };
+
+  $('cfgDrop').onclick=function(){ $('cfgFileInput').click(); };
+  $('cfgFileInput').onchange=function(e){ if(e.target.files[0]) cfgHandleImage(e.target.files[0]); };
+  $('cfgSupplierName').addEventListener('input', validateCfgForm);
+  $('cfgBtnAnalyze').onclick=cfgAnalyze;
+  $('cfgBtnSave').onclick=cfgSave;
+
+  $('dropZone').onclick=function(){ $('fileInput').click(); };
+  $('fileInput').onchange=function(e){ if(e.target.files[0]) handleFile(e.target.files[0]); };
+  $('poInput').addEventListener('input',validateWeb);
+  $('btnAnalyze').onclick=analyzeColumns;
+  $('btnReanalyze').onclick=analyzeColumns;
+  $('btnSave').onclick=function(){
+    var po=$('poInput').value.trim();
+    if(!po||!parsedBoxes||!parsedBoxes.length) return;
+    Store.saveBatch(po,parsedBoxes);
+    $('webMsg').innerHTML='<div class="alert ok">✅ Batch <b>'+po+'</b> salvo — '+parsedBoxes.length+' '+T('web.batches.boxes')+'.</div>';
+    $('poInput').value=''; $('fname').textContent=''; $('dropZone').classList.remove('has');
+    $('mapPanel').style.display='none';
+    parsedBoxes=null; parsedRows=null; parsedSample=null; pendingMapping=null;
+    validateWeb(); refreshPoList();
+  };
+
+  /* btnSave handled in bind above */
+
+  $('btnManual').onclick=function(){
+    var v=$('manualInput').value.trim();
+    if(!v){ $('scanMsg').innerHTML='<div class="alert warn">Digite o número da etiqueta.</div>'; return; }
+    stopScanner(function(){ lookup(v); });
+  };
+  $('manualInput').addEventListener('keydown',function(e){ if(e.key==='Enter') $('btnManual').click(); });
+  $('btnBackPo').onclick=function(){ stopScanner(function(){ buildMobPoList(); showMob('ms-po'); }); };
+  $('btnOpenCam').onclick=openCam;
+  $('btnSnap').onclick=snapPhoto;
+  $('btnRetake').onclick=function(){
+    $('photoPreview').style.display='none';
+    $('aiStatus').style.display='none';
+    $('aiStatus').className='alert info';
+    $('scanMsg').innerHTML='';
+    $('btnRetake').style.display='none';
+    openCam();
+  };
+  $('btnBackScan').onclick=function(){ stopCam(); showMob('ms-scan'); };
+  $('btnPrint').onclick=function(){ buildLabel(); showMob('ms-label'); };
+  $('btnDoPrint').onclick=function(){ window.print(); };
+  $('btnNext').onclick=function(){ addRecent(); mob.box=null; resetCamUI(); showMob('ms-scan'); };
+
+  showBoot();
+  refreshPoList();
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',bind);
+} else { bind(); }
+
+/* expõe ao escopo global para onclicks no HTML */
+window.showDeployModal=showDeployModal;
+window.hideDeployModal=hideDeployModal;
+window.runDeploy=runDeploy;
+
+})();
+</script>
+</body>
+</html>
