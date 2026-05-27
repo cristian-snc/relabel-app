@@ -249,10 +249,12 @@ main{flex:1;padding:18px 16px;display:flex;flex-direction:column;gap:16px;}
 <div id="root">
 
 <div class="apikey-bar" id="apikeyBar">
-  <span class="ak-label">API KEY</span>
-  <input type="password" id="apikeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+  <span class="ak-label">🔑 API KEY</span>
+  <input type="password" id="apikeyInput" placeholder="sk-ant-api03-… (cole sua chave Anthropic)" autocomplete="off" spellcheck="false">
   <button class="ak-save" id="apikeySave">Salvar</button>
   <span class="ak-status" id="apikeyStatus"></span>
+  <a href="https://console.anthropic.com/settings/keys" target="_blank"
+     style="color:var(--info);font-size:10px;text-decoration:none;white-space:nowrap;">Obter chave ↗</a>
 </div>
 <div class="modebar">
   <button class="modebtn on" id="m-web"><span class="em">🖥️</span> <span data-i18n="app.web">PLATAFORMA WEB</span></button>
@@ -1253,20 +1255,27 @@ function updateApiKeyUI(key){
   if(!input) return;
   if(key && key.length>10){
     input.className='ok';
+    input.style.borderColor='var(--ok)';
     status.className='ak-status ok';
     status.textContent='✓ salva';
-    input.value=key; /* mostra para confirmação */
+    /* mostra só os primeiros e últimos 4 chars */
+    input.placeholder=key.slice(0,8)+'…'+key.slice(-4);
+    input.value=''; /* limpa para não mostrar a chave completa */
   } else {
     input.className='';
+    input.style.borderColor='var(--err)';
     status.className='ak-status err';
-    status.textContent=key?'inválida':'não configurada';
+    status.textContent=key?'inválida':'⚠ não configurada';
   }
 }
 
 function apiFetch(messages, maxTokens){
   var apiKey=getApiKey();
   if(!apiKey){
-    return Promise.reject(new Error('API Key não configurada. Insira sua chave Anthropic na barra superior.'));
+    return Promise.reject(new Error(
+      'API Key não configurada. '+
+      'Cole sua chave (sk-ant-…) no campo API KEY no topo da página e clique Salvar.'
+    ));
   }
 
   /* valida payload */
@@ -2349,7 +2358,22 @@ function bind(){
     updateApiKeyUI(savedKey);
     $('apikeySave').onclick=function(){
       var k=$('apikeyInput').value.trim();
+      if(!k){
+        $('apikeyStatus').textContent='Cole a chave antes de salvar';
+        $('apikeyStatus').className='ak-status err';
+        return;
+      }
+      if(!k.startsWith('sk-ant-')){
+        $('apikeyStatus').textContent='Chave inválida — deve começar com sk-ant-';
+        $('apikeyStatus').className='ak-status err';
+        return;
+      }
       saveApiKey(k);
+      /* feedback imediato */
+      var btn=$('apikeySave');
+      btn.textContent='✓ Salvo!';
+      btn.style.background='var(--ok)';
+      setTimeout(function(){ btn.textContent='Salvar'; btn.style.background=''; }, 2000);
     };
     $('apikeyInput').addEventListener('keydown',function(e){
       if(e.key==='Enter') $('apikeySave').click();
